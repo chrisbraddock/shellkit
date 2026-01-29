@@ -52,6 +52,16 @@ git add VERSION CHANGELOG.md README.md 2>/dev/null || true
 git commit -m "chore(release): v${NEW_VERSION}"
 git tag -a "v${NEW_VERSION}" -m "Release v${NEW_VERSION}"
 
+# Push and create GitHub Release
 echo ""
-echo "==> Release v${NEW_VERSION} ready!"
-echo "    Run: git push origin main --tags"
+echo "==> Pushing to origin..."
+git push origin main --tags
+
+if command -v gh &>/dev/null; then
+    echo "==> Creating GitHub Release..."
+    gh release create "v${NEW_VERSION}" --title "v${NEW_VERSION}" --notes-file CHANGELOG.md
+    echo "    Created GitHub Release"
+fi
+
+echo ""
+echo "==> Release v${NEW_VERSION} complete!"
