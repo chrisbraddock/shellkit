@@ -1,0 +1,32 @@
+# Promote a local topic branch to a remote tracking branch
+# Pushes and sets up tracking configuration
+
+local curr_branch=$(git symbolic-ref -q HEAD | sed -e 's|^refs/heads/||')
+
+if [[ -z "$curr_branch" ]]; then
+    echo "Error: Not on a branch"
+    return 1
+fi
+
+# Detect remote: use existing config, or "origin" if available, else first remote
+local remote=$(git config --get "branch.${curr_branch}.remote")
+if [[ -z "$remote" ]]; then
+    if git remote | grep -qx "origin"; then
+        remote="origin"
+    else
+        remote=$(git remote | head -n1)
+    fi
+fi
+
+if [[ -z "$remote" ]]; then
+    echo "Error: No remote configured"
+    return 1
+fi
+
+local remote_branch=$(git branch -r | sed 's/^[[:space:]]*//' | grep -Fx "${remote}/${curr_branch}")
+[[ -z "${remote_branch}" ]] && git push "$remote" "${curr_branch}"
+
+git config "branch.${curr_branch}.remote" "$remote"
+git config "branch.${curr_branch}.merge" "refs/heads/${curr_branch}"
+
+echo "Branch '${curr_branch}' promoted to ${remote}"

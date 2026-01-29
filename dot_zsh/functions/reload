@@ -1,0 +1,31 @@
+# Reload shell configuration by sourcing .zshrc
+# Clears ALL aliases (not just shellkit's) and functions for a clean reload
+
+local zshrc="${ZDOTDIR:-$HOME}/.zshrc"
+local funcs_dir="${ZDOTDIR:-$HOME}/.zsh/functions"
+
+if [[ ! -f "$zshrc" ]]; then
+    echo "Error: .zshrc not found at $zshrc" >&2
+    return 1
+fi
+
+echo "Clearing aliases..."
+unalias -m '*' 2>/dev/null
+
+echo "Clearing shellkit functions..."
+if [[ -d "$funcs_dir" ]]; then
+    for f in "$funcs_dir"/*(.N:t); do
+        unfunction "$f" 2>/dev/null
+    done
+fi
+
+# Clear inline functions defined in alias files
+unfunction gdd git-archive git-normalize wimip 2>/dev/null
+
+echo "Reloading from ${zshrc}..."
+source "$zshrc"
+
+# Reload p10k prompt if available
+(( $+functions[p10k] )) && p10k reload
+
+echo "Shell reloaded."

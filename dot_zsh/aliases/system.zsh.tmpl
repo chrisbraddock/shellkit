@@ -1,0 +1,113 @@
+# ============================================================
+# System Aliases
+# ============================================================
+# Filesystem, navigation, and network utilities
+# ============================================================
+
+# ------------------------------------------------------------
+# Debian/Ubuntu Package Name Shims
+# ------------------------------------------------------------
+# fd-find installs as 'fdfind', bat installs as 'batcat'
+if [[ "$OS_TYPE" == "linux" || "$OS_TYPE" == "ubuntu" || "$OS_TYPE" == "wsl" ]]; then
+    command -v fdfind &>/dev/null && ! command -v fd &>/dev/null && alias fd='fdfind'
+    command -v batcat &>/dev/null && ! command -v bat &>/dev/null && alias bat='batcat'
+fi
+
+# ------------------------------------------------------------
+# Filesystem
+# ------------------------------------------------------------
+
+# List files - use eza if available, fall back to ls
+if command -v eza &>/dev/null; then
+    alias l='eza -la'
+    alias ll='eza -la'
+    alias la='eza -a'    # all files, short format
+    alias lt='eza -laT'  # tree view
+elif [[ "$OS_TYPE" == "macos" ]]; then
+    alias l='ls -laG'
+    alias ll='ls -laG'
+    alias la='ls -AG'
+else
+    alias l='ls -la --color=auto'
+    alias ll='ls -la --color=auto'
+    alias la='ls -A --color=auto'
+fi
+
+# Open in editor (VS Code preferred)
+if [[ "$OS_TYPE" == "wsl" ]]; then
+    alias e='code.exe'
+elif command -v code &>/dev/null; then
+    alias e='code'
+else
+    alias e='vi'
+fi
+
+# macOS Finder utilities
+if [[ "$OS_TYPE" == "macos" ]]; then
+    alias showfiles='defaults write com.apple.finder AppleShowAllFiles YES; killall Finder'
+    alias hidefiles='defaults write com.apple.finder AppleShowAllFiles NO; killall Finder'
+fi
+
+# Cross-platform open command
+if [[ "$OS_TYPE" == "linux" || "$OS_TYPE" == "ubuntu" ]]; then
+    alias open='xdg-open'
+elif [[ "$OS_TYPE" == "wsl" ]]; then
+    alias open='explorer.exe'
+fi
+
+# Use htop if available, fallback to top
+if command -v htop &>/dev/null; then
+    alias top='htop'
+fi
+
+# Use colordiff if available for colored diffs
+if command -v colordiff &>/dev/null; then
+    alias diff='colordiff'
+fi
+
+# ------------------------------------------------------------
+# Navigation
+# ------------------------------------------------------------
+
+alias r="pushd ~/repos"
+alias c="clear"
+alias d="pushd ~/Desktop"
+alias dn="pushd ~/Downloads"
+alias shellkit="pushd ~/repos/shellkit"
+
+# Open current directory in file manager
+if [[ "$OS_TYPE" == "macos" ]]; then
+    alias o="open ."
+elif [[ "$OS_TYPE" == "linux" || "$OS_TYPE" == "ubuntu" ]]; then
+    alias o="xdg-open ."
+elif [[ "$OS_TYPE" == "wsl" ]]; then
+    alias o="explorer.exe ."
+fi
+
+# ------------------------------------------------------------
+# Network
+# ------------------------------------------------------------
+
+alias grab-a-site="echo 'wget -np -k -r'"
+alias hosts='sudo -e /etc/hosts'
+
+# Get current machine's IP address
+wimip() {
+    if [[ "$OS_TYPE" == "macos" ]]; then
+        ifconfig | grep "inet " | grep -v 127.0.0.1 | awk '{print $2}'
+    else
+        ip addr show | grep "inet " | grep -v 127.0.0.1 | awk '{print $2}' | cut -d/ -f1
+    fi
+}
+
+# Flush DNS cache
+if [[ "$OS_TYPE" == "macos" ]]; then
+    alias flushdns="sudo dscacheutil -flushcache; sudo killall -HUP mDNSResponder"
+elif [[ "$OS_TYPE" == "linux" || "$OS_TYPE" == "ubuntu" ]]; then
+    if command -v resolvectl &>/dev/null; then
+        alias flushdns="sudo resolvectl flush-caches"
+    elif command -v systemd-resolve &>/dev/null; then
+        alias flushdns="sudo systemd-resolve --flush-caches"
+    fi
+fi
+

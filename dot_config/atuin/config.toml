@@ -1,0 +1,88 @@
+# ============================================================
+# Atuin Configuration
+# ============================================================
+# Local-only shell history - no cloud sync
+# https://docs.atuin.sh/configuration/config/
+# ============================================================
+
+# ------------------------------------------------------------
+# Database & Storage
+# ------------------------------------------------------------
+
+# Store history locally only
+db_path = "~/.local/share/atuin/history.db"
+
+# Disable sync entirely (local-only mode)
+sync_frequency = 0
+sync_address = ""
+
+# ------------------------------------------------------------
+# Search Behavior
+# ------------------------------------------------------------
+
+# Search mode: prefix, fulltext, fuzzy, skim
+search_mode = "fuzzy"
+
+# Filter mode: global, host, session, directory
+filter_mode = "global"
+
+# Filter mode for shell up-arrow
+filter_mode_shell_up_arrow = "host"
+
+# Exit after selecting a command
+exit_mode = "return-original"
+
+# ------------------------------------------------------------
+# History Settings
+# ------------------------------------------------------------
+
+# Inline height (0 = use $LINES)
+inline_height = 0
+
+# Show preview of full command
+show_preview = true
+
+# Show context (directory, etc.)
+show_context = true
+
+# Maximum history shown
+max_preview_height = 4
+
+# ------------------------------------------------------------
+# Style
+# ------------------------------------------------------------
+
+# UI style: auto, full, compact
+style = "auto"
+
+# Show help in the TUI
+show_help = true
+
+# Invert UI (search at top)
+invert = false
+
+# ------------------------------------------------------------
+# Key Bindings
+# ------------------------------------------------------------
+
+# Use Ctrl+R for search
+# (configured in shell init, not here)
+
+# ------------------------------------------------------------
+# Privacy
+# ------------------------------------------------------------
+
+# Commands to never record (use regex)
+history_filter = [
+    "^export .*TOKEN.*=",
+    "^export .*SECRET.*=",
+    "^export .*PASSWORD.*=",
+    "^export .*KEY.*=",
+]
+
+# Filter sensitive data from commands
+secrets_filter = true
+
+# Record cwd with each command
+cwd_filter = []
+

@@ -1,0 +1,189 @@
+# ============================================================
+# Zsh Configuration
+# ============================================================
+# Managed by chezmoi - shellkit
+# ============================================================
+
+# ------------------------------------------------------------
+# Powerlevel10k Instant Prompt (must be at top)
+# ------------------------------------------------------------
+if [[ -r "${XDG_CACHE_HOME:-$HOME/.cache}/p10k-instant-prompt-${(%):-%n}.zsh" ]]; then
+    source "${XDG_CACHE_HOME:-$HOME/.cache}/p10k-instant-prompt-${(%):-%n}.zsh"
+fi
+
+# ------------------------------------------------------------
+# Zsh Options
+# ------------------------------------------------------------
+
+# History
+HISTFILE="${ZDOTDIR:-$HOME}/.zsh_history"
+HISTSIZE=50000
+SAVEHIST=50000
+
+setopt EXTENDED_HISTORY          # Write timestamps to history
+setopt HIST_EXPIRE_DUPS_FIRST    # Expire duplicates first when trimming
+setopt HIST_IGNORE_DUPS          # Don't record immediate duplicates
+setopt HIST_IGNORE_ALL_DUPS      # Delete old recorded entry if new is duplicate
+setopt HIST_IGNORE_SPACE         # Don't record lines starting with space
+setopt HIST_FIND_NO_DUPS         # Don't display duplicates in search
+setopt HIST_REDUCE_BLANKS        # Remove superfluous blanks
+setopt HIST_VERIFY               # Don't execute immediately on history expansion
+setopt SHARE_HISTORY             # Share history between sessions
+setopt INC_APPEND_HISTORY        # Add commands immediately
+
+# Directory navigation
+setopt AUTO_CD                   # cd by typing directory name
+setopt AUTO_PUSHD                # Push old directory onto stack
+setopt PUSHD_IGNORE_DUPS         # Don't push duplicates
+setopt PUSHD_SILENT              # Don't print stack after pushd/popd
+
+# Completion
+setopt COMPLETE_IN_WORD          # Complete from both ends of word
+setopt ALWAYS_TO_END             # Move cursor to end after completion
+setopt NO_LIST_BEEP              # Don't beep on ambiguous completion
+
+# Misc
+setopt CORRECT                   # Command spell correction
+setopt NO_BG_NICE                # Don't nice background jobs
+setopt NO_HUP                    # Don't kill background jobs on exit
+setopt LOCAL_OPTIONS             # Allow functions to have local options
+setopt LOCAL_TRAPS               # Allow functions to have local traps
+setopt PROMPT_SUBST              # Enable prompt substitution
+setopt IGNORE_EOF                # Don't exit on Ctrl-D
+
+# ------------------------------------------------------------
+# OS Detection & Paths
+# ------------------------------------------------------------
+
+source "${ZDOTDIR:-$HOME}/.zsh/os-detect.zsh"
+source "${ZDOTDIR:-$HOME}/.zsh/paths.zsh"
+
+{{- if eq .profile "full" }}
+# ------------------------------------------------------------
+# Antidote Plugin Manager (must load before compinit for zsh-completions)
+# ------------------------------------------------------------
+
+# Determine Antidote path
+if [[ -f "${HOMEBREW_PREFIX:-/opt/homebrew}/opt/antidote/share/antidote/antidote.zsh" ]]; then
+    ANTIDOTE_HOME="${HOMEBREW_PREFIX:-/opt/homebrew}/opt/antidote/share/antidote"
+elif [[ -f "/home/linuxbrew/.linuxbrew/opt/antidote/share/antidote/antidote.zsh" ]]; then
+    ANTIDOTE_HOME="/home/linuxbrew/.linuxbrew/opt/antidote/share/antidote"
+elif [[ -f "${ZDOTDIR:-$HOME}/.antidote/antidote.zsh" ]]; then
+    ANTIDOTE_HOME="${ZDOTDIR:-$HOME}/.antidote"
+fi
+
+if [[ -n "$ANTIDOTE_HOME" ]]; then
+    source "${ANTIDOTE_HOME}/antidote.zsh"
+
+    # Generate static plugin file if needed (or if antidote was upgraded)
+    zsh_plugins="${ZDOTDIR:-$HOME}/.zsh_plugins"
+    if [[ ! "${zsh_plugins}.zsh" -nt "${zsh_plugins}.txt" ]] || \
+       ! grep -q "$ANTIDOTE_HOME" "${zsh_plugins}.zsh" 2>/dev/null; then
+        antidote bundle <"${zsh_plugins}.txt" >"${zsh_plugins}.zsh"
+    fi
+    source "${zsh_plugins}.zsh"
+fi
+{{- end }}
+
+# ------------------------------------------------------------
+# Completion System (after Antidote adds zsh-completions to fpath)
+# ------------------------------------------------------------
+
+# Initialize completion (with caching for speed)
+autoload -Uz compinit
+if [[ -n "${ZDOTDIR:-$HOME}/.zcompdump"(N.mh-24) ]]; then
+    compinit -C  # Cache exists and fresh, skip security check
+else
+    compinit     # Cache missing or stale, regenerate with security check
+fi
+
+source "${ZDOTDIR:-$HOME}/.zsh/completion.zsh"
+
+# ------------------------------------------------------------
+# Tool Integrations
+# ------------------------------------------------------------
+{{- if .install_atuin }}
+
+# Atuin (shell history)
+if command -v atuin &>/dev/null; then
+    eval "$(atuin init zsh --disable-up-arrow)"
+fi
+{{- end }}
+{{- if .install_zoxide }}
+
+# Zoxide (smart cd)
+if command -v zoxide &>/dev/null; then
+    eval "$(zoxide init zsh)"
+fi
+{{- end }}
+{{- if .install_fzf }}
+
+# FZF (fuzzy finder)
+if [[ -f "${ZDOTDIR:-$HOME}/.fzf.zsh" ]]; then
+    source "${ZDOTDIR:-$HOME}/.fzf.zsh"
+elif command -v fzf &>/dev/null; then
+    eval "$(fzf --zsh)"
+fi
+{{- end }}
+
+# ------------------------------------------------------------
+# Aliases
+# ------------------------------------------------------------
+
+for alias_file in "${ZDOTDIR:-$HOME}/.zsh/aliases"/*.zsh; do
+    [[ -f "$alias_file" ]] && source "$alias_file"
+done
+
+# ------------------------------------------------------------
+# Functions
+# ------------------------------------------------------------
+
+# Add functions to fpath for autoloading
+fpath=("${ZDOTDIR:-$HOME}/.zsh/functions" $fpath)
+
+# Autoload shellkit functions
+autoload -Uz reload git-delete-local-merged git-all git-amend git-credit git-undo git-promote git-up
+{{- if eq .profile "full" }}
+autoload -Uz mon sudo-biometrics
+{{- end }}
+
+# ------------------------------------------------------------
+# Key Bindings
+# ------------------------------------------------------------
+
+# Emacs-style line editing
+bindkey -e
+
+# Word navigation
+bindkey '^[[1;5D' backward-word     # Ctrl+Left
+bindkey '^[[1;5C' forward-word      # Ctrl+Right
+bindkey '^[^[[D' backward-word      # Alt+Left (iTerm2)
+bindkey '^[^[[C' forward-word       # Alt+Right (iTerm2)
+
+# Line navigation
+bindkey '^[[H' beginning-of-line    # Home
+bindkey '^[[F' end-of-line          # End
+bindkey '^[[5D' beginning-of-line   # Ctrl+Left (iTerm2)
+bindkey '^[[5C' end-of-line         # Ctrl+Right (iTerm2)
+
+# Deletion
+bindkey '^[[3~' delete-char         # Delete
+bindkey '^?' backward-delete-char   # Backspace
+
+# History substring search (only bind if widget exists)
+if (( ${+widgets[history-substring-search-up]} )); then
+    bindkey '^[[A' history-substring-search-up
+    bindkey '^[[B' history-substring-search-down
+fi
+
+# ------------------------------------------------------------
+# Powerlevel10k Configuration (must be at end)
+# ------------------------------------------------------------
+
+[[ -f "${ZDOTDIR:-$HOME}/.p10k.zsh" ]] && source "${ZDOTDIR:-$HOME}/.p10k.zsh"
+
+# ------------------------------------------------------------
+# iTerm2 Shell Integration (macOS)
+# ------------------------------------------------------------
+
+[[ -f "${HOME}/.iterm2_shell_integration.zsh" ]] && source "${HOME}/.iterm2_shell_integration.zsh"

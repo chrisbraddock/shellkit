@@ -1,0 +1,107 @@
+" ============================================================
+" Shellkit Vim Configuration
+" ============================================================
+" Sensible defaults for quick editing
+" ============================================================
+
+" ------------------------------------------------------------
+" Syntax and Colors
+" ------------------------------------------------------------
+syntax enable
+set background=dark
+
+" ------------------------------------------------------------
+" Line Numbers
+" ------------------------------------------------------------
+set number
+set relativenumber
+
+" ------------------------------------------------------------
+" Mouse Support
+" ------------------------------------------------------------
+set mouse=a
+
+" ------------------------------------------------------------
+" Search
+" ------------------------------------------------------------
+set hlsearch
+set incsearch
+set ignorecase
+set smartcase
+
+" Clear search highlighting with Escape
+nnoremap <Esc> :nohlsearch<CR>
+
+" ------------------------------------------------------------
+" Indentation
+" ------------------------------------------------------------
+set tabstop=4
+set shiftwidth=4
+set expandtab
+set autoindent
+set smartindent
+
+" ------------------------------------------------------------
+" UI
+" ------------------------------------------------------------
+set showcmd
+set showmode
+set ruler
+set laststatus=2
+set wildmenu
+set wildmode=list:longest,full
+set scrolloff=5
+set sidescrolloff=5
+
+" Show matching brackets
+set showmatch
+
+" ------------------------------------------------------------
+" Behavior
+" ------------------------------------------------------------
+set backspace=indent,eol,start
+set hidden
+set noswapfile
+set nobackup
+set nowritebackup
+set autoread
+set confirm
+
+" Faster updates
+set updatetime=300
+
+" ------------------------------------------------------------
+" File Handling
+" ------------------------------------------------------------
+set encoding=utf-8
+set fileformats=unix,dos,mac
+
+" ------------------------------------------------------------
+" Clipboard
+" ------------------------------------------------------------
+" Use system clipboard
+set clipboard=unnamed,unnamedplus
+
+" ------------------------------------------------------------
+" Key Mappings
+" ------------------------------------------------------------
+" Better window navigation
+nnoremap <C-h> <C-w>h
+nnoremap <C-j> <C-w>j
+nnoremap <C-k> <C-w>k
+nnoremap <C-l> <C-w>l
+
+" Quick save
+nnoremap <C-s> :w<CR>
+inoremap <C-s> <Esc>:w<CR>a
+
+" Quick quit
+nnoremap <leader>q :q<CR>
+
+" ------------------------------------------------------------
+" File Type Specific
+" ------------------------------------------------------------
+filetype plugin indent on
+
+" 2-space indent for specific file types
+autocmd FileType yaml,json,javascript,typescript,html,css setlocal tabstop=2 shiftwidth=2

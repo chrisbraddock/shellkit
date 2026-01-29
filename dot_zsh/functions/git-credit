@@ -1,0 +1,9 @@
+# Credit an author on the latest commit
+# Usage: git-credit "Full Name" email@example.com
+
+if [[ $# -ne 2 ]]; then
+    echo "Usage: git-credit \"Full Name\" email@example.com"
+    return 1
+fi
+
+git commit --amend --author "$1 <$2>" -C HEAD

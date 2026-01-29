@@ -1,0 +1,317 @@
+#!/bin/bash
+# sudo-biometrics - Enable/disable biometric authentication for sudo
+# Usage:
+#   sudo-biometrics status  - Check if biometric sudo is enabled
+#   sudo-biometrics enable  - Enable biometric sudo (platform-specific)
+#   sudo-biometrics disable - Disable biometric sudo
+#   sudo-biometrics test    - Test biometric sudo authentication
+
+# Safety: never brick sudo
+# - Backups before modifications
+# - Password fallback always preserved
+# - Recovery instructions on failure
+
+_sudo_bio_macos_status() {
+    local sudo_local="/etc/pam.d/sudo_local"
+    if [[ -f "$sudo_local" ]] && grep -q "^auth.*pam_tid.so" "$sudo_local" 2>/dev/null; then
+        echo "enabled: Touch ID (macOS)"
+        echo "  config: $sudo_local"
+        return 0
+    else
+        echo "disabled: Touch ID not configured"
+        return 1
+    fi
+}
+
+_sudo_bio_macos_enable() {
+    local template="/etc/pam.d/sudo_local.template"
+    local sudo_local="/etc/pam.d/sudo_local"
+    local backup="${sudo_local}.bak.$(date +%Y%m%d%H%M%S)"
+
+    # Check if already enabled
+    if [[ -f "$sudo_local" ]] && grep -q "^auth.*pam_tid.so" "$sudo_local" 2>/dev/null; then
+        echo "Touch ID for sudo is already enabled."
+        return 0
+    fi
+
+    # Verify template exists (Apple provides this)
+    if [[ ! -f "$template" ]]; then
+        echo "Error: Template not found: $template" >&2
+        echo "This may not be supported on your macOS version." >&2
+        return 3
+    fi
+
+    echo "Enabling Touch ID for sudo..."
+
+    # Backup existing file if present
+    if [[ -f "$sudo_local" ]]; then
+        echo "  Backing up: $sudo_local -> $backup"
+        sudo cp "$sudo_local" "$backup" || { echo "Backup failed" >&2; return 3; }
+    fi
+
+    # Copy template and uncomment pam_tid.so line
+    echo "  Creating: $sudo_local"
+    sudo cp "$template" "$sudo_local" || { echo "Copy failed" >&2; return 3; }
+
+    # Uncomment the pam_tid.so line (template has it commented)
+    if grep -q "#.*pam_tid.so" "$sudo_local"; then
+        sudo sed -i '' 's/^#\(auth.*pam_tid.so\)/\1/' "$sudo_local" || {
+            echo "Failed to enable pam_tid.so" >&2
+            [[ -f "$backup" ]] && sudo cp "$backup" "$sudo_local"
+            return 3
+        }
+    fi
+
+    # Validate
+    if grep -q "^auth.*pam_tid.so" "$sudo_local"; then
+        echo "Touch ID for sudo enabled successfully."
+        echo ""
+        echo "Recovery note: If sudo breaks, boot to Recovery Mode and run:"
+        echo "  rm /Volumes/Macintosh\\ HD/etc/pam.d/sudo_local"
+        return 0
+    else
+        echo "Validation failed - restoring backup" >&2
+        [[ -f "$backup" ]] && sudo cp "$backup" "$sudo_local"
+        return 3
+    fi
+}
+
+_sudo_bio_macos_disable() {
+    local sudo_local="/etc/pam.d/sudo_local"
+
+    if [[ ! -f "$sudo_local" ]]; then
+        echo "Touch ID for sudo is not configured."
+        return 0
+    fi
+
+    if ! grep -q "^auth.*pam_tid.so" "$sudo_local" 2>/dev/null; then
+        echo "Touch ID for sudo is already disabled."
+        return 0
+    fi
+
+    echo "Disabling Touch ID for sudo..."
+
+    # Comment out the pam_tid.so line
+    sudo sed -i '' 's/^\(auth.*pam_tid.so\)/#\1/' "$sudo_local" || {
+        echo "Failed to disable pam_tid.so" >&2
+        return 3
+    }
+
+    echo "Touch ID for sudo disabled."
+    return 0
+}
+
+_sudo_bio_linux_status() {
+    local pam_sudo="/etc/pam.d/sudo"
+
+    if [[ -f "$pam_sudo" ]] && grep -q "pam_fprintd.so" "$pam_sudo" 2>/dev/null; then
+        echo "enabled: Fingerprint (fprintd)"
+        echo "  config: $pam_sudo"
+        return 0
+    elif command -v fprintd-verify &>/dev/null; then
+        echo "disabled: fprintd installed but not configured for sudo"
+        return 1
+    else
+        echo "disabled: fprintd not installed"
+        return 1
+    fi
+}
+
+_sudo_bio_linux_enable() {
+    echo "Linux fingerprint authentication for sudo"
+    echo ""
+
+    if [[ "$OS_TYPE" == "ubuntu" ]] || command -v apt &>/dev/null; then
+        echo "Ubuntu/Debian detected. Recommended steps:"
+        echo ""
+        echo "  1. Install packages (if not already):"
+        echo "     sudo apt install fprintd libpam-fprintd"
+        echo ""
+        echo "  2. Enroll your fingerprint:"
+        echo "     fprintd-enroll"
+        echo ""
+        echo "  3. Enable for authentication (recommended method):"
+        echo "     sudo pam-auth-update"
+        echo "     (Select 'Fingerprint authentication')"
+        echo ""
+    else
+        echo "Manual PAM configuration required."
+        echo ""
+        echo "  1. Install fprintd and pam_fprintd (package names vary by distro)"
+        echo ""
+        echo "  2. Enroll your fingerprint:"
+        echo "     fprintd-enroll"
+        echo ""
+        echo "  3. Add to /etc/pam.d/sudo (near top, before password auth):"
+        echo "     auth sufficient pam_fprintd.so max-tries=3 timeout=10"
+        echo ""
+        echo "  IMPORTANT: Keep password auth as fallback!"
+        echo ""
+    fi
+
+    echo "Reference: https://fprint.freedesktop.org/"
+    return 2  # Instructions printed, no changes made
+}
+
+_sudo_bio_linux_disable() {
+    echo "To disable fingerprint authentication for sudo:"
+    echo ""
+
+    if command -v pam-auth-update &>/dev/null; then
+        echo "  Run: sudo pam-auth-update"
+        echo "  (Deselect 'Fingerprint authentication')"
+    else
+        echo "  Edit /etc/pam.d/sudo and remove or comment out:"
+        echo "  auth sufficient pam_fprintd.so ..."
+    fi
+
+    return 2  # Instructions printed
+}
+
+_sudo_bio_wsl_status() {
+    if [[ -f /usr/lib/x86_64-linux-gnu/security/pam_wsl_hello.so ]] || \
+       [[ -f /lib/security/pam_wsl_hello.so ]]; then
+        local pam_sudo="/etc/pam.d/sudo"
+        if grep -q "pam_wsl_hello.so" "$pam_sudo" 2>/dev/null; then
+            echo "enabled: Windows Hello (WSL)"
+            return 0
+        else
+            echo "disabled: pam_wsl_hello.so installed but not configured"
+            return 1
+        fi
+    else
+        echo "disabled: WSL-Hello-sudo not installed"
+        return 1
+    fi
+}
+
+_sudo_bio_wsl_enable() {
+    echo "WSL Windows Hello authentication for sudo"
+    echo ""
+    echo "WSL can use Windows Hello (face/fingerprint/PIN) via a PAM bridge."
+    echo ""
+    echo "Install WSL-Hello-sudo:"
+    echo "  https://github.com/nullpo-head/WSL-Hello-sudo"
+    echo ""
+    echo "Quick install:"
+    echo "  wget https://github.com/nullpo-head/WSL-Hello-sudo/releases/latest/download/release.tar.gz"
+    echo "  tar xvf release.tar.gz"
+    echo "  ./install.sh"
+    echo ""
+    echo "The installer will configure PAM automatically."
+    echo ""
+    echo "IMPORTANT: Ensure Windows Hello is set up on the Windows side first."
+    return 2  # Instructions printed
+}
+
+_sudo_bio_wsl_disable() {
+    echo "To disable Windows Hello for sudo in WSL:"
+    echo ""
+    echo "  Edit /etc/pam.d/sudo and remove or comment out:"
+    echo "  auth sufficient pam_wsl_hello.so"
+    echo ""
+    echo "  Or run the uninstaller from WSL-Hello-sudo if available."
+    return 2  # Instructions printed
+}
+
+_sudo_bio_test() {
+    echo "Testing sudo authentication..."
+    echo "(This will invalidate cached credentials and prompt for auth)"
+    echo ""
+
+    # Invalidate cached credentials
+    sudo -k
+
+    # Test with a simple command
+    if sudo true; then
+        echo ""
+        echo "sudo test passed."
+        return 0
+    else
+        echo ""
+        echo "sudo test failed." >&2
+        return 3
+    fi
+}
+
+_sudo_bio_help() {
+    cat <<'EOF'
+sudo-biometrics - Biometric authentication for sudo
+
+USAGE:
+    sudo-biometrics <command>
+
+COMMANDS:
+    status   Check if biometric sudo is enabled (default)
+    enable   Enable biometric sudo for this platform
+    disable  Disable biometric sudo
+    test     Test sudo authentication (invalidates cache first)
+    help     Show this help message
+
+PLATFORMS:
+    macOS    Touch ID via pam_tid.so (auto-enabled, survives updates)
+    Linux    Fingerprint via fprintd (prints instructions)
+    WSL      Windows Hello via pam_wsl_hello.so (prints instructions)
+
+EXAMPLES:
+    sudo-biometrics status
+    sudo-biometrics enable
+    sudo-biometrics test
+
+SAFETY:
+    - macOS changes use Apple's supported sudo_local mechanism
+    - Backups are created before any modifications
+    - Password authentication is always preserved as fallback
+EOF
+}
+
+# Main dispatch
+case "${1:-status}" in
+    status)
+        if [[ "$OS_TYPE" == "macos" ]]; then
+            _sudo_bio_macos_status
+        elif [[ "$OS_TYPE" == "wsl" ]]; then
+            _sudo_bio_wsl_status
+        elif [[ "$OS_TYPE" == "linux" || "$OS_TYPE" == "ubuntu" ]]; then
+            _sudo_bio_linux_status
+        else
+            echo "unsupported: platform '$OS_TYPE' not supported"
+            return 1
+        fi
+        ;;
+    enable)
+        if [[ "$OS_TYPE" == "macos" ]]; then
+            _sudo_bio_macos_enable
+        elif [[ "$OS_TYPE" == "wsl" ]]; then
+            _sudo_bio_wsl_enable
+        elif [[ "$OS_TYPE" == "linux" || "$OS_TYPE" == "ubuntu" ]]; then
+            _sudo_bio_linux_enable
+        else
+            echo "unsupported: platform '$OS_TYPE' not supported" >&2
+            return 1
+        fi
+        ;;
+    disable)
+        if [[ "$OS_TYPE" == "macos" ]]; then
+            _sudo_bio_macos_disable
+        elif [[ "$OS_TYPE" == "wsl" ]]; then
+            _sudo_bio_wsl_disable
+        elif [[ "$OS_TYPE" == "linux" || "$OS_TYPE" == "ubuntu" ]]; then
+            _sudo_bio_linux_disable
+        else
+            echo "unsupported: platform '$OS_TYPE' not supported" >&2
+            return 1
+        fi
+        ;;
+    test)
+        _sudo_bio_test
+        ;;
+    help|--help|-h)
+        _sudo_bio_help
+        ;;
+    *)
+        echo "Unknown subcommand: $1" >&2
+        echo "Usage: sudo-biometrics {status|enable|disable|test|help}" >&2
+        return 1
+        ;;
+esac

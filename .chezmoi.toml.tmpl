@@ -1,0 +1,74 @@
+# shellkit chezmoi configuration
+# Machine-specific variables set during `chezmoi init`
+
+sourceDir = {{ .chezmoi.sourceDir | quote }}
+
+{{- /* Identity prompts (asked once; stored in local config) */ -}}
+{{- $pName := promptStringOnce . "identities.personal.name" "Personal full name" -}}
+{{- $pEmail := promptStringOnce . "identities.personal.email" "Personal email" -}}
+{{- $pKey := promptStringOnce . "identities.personal.sshKey" "Personal SSH key" "id_rsa" -}}
+
+{{- /* Work identity - label is configurable for privacy */ -}}
+{{- $wLabel := promptStringOnce . "identities.work.label" "Work identity label (e.g., work, company)" "work" -}}
+{{- $wName := promptStringOnce . "identities.work.name" "Work full name" $pName -}}
+{{- $wEmail := promptStringOnce . "identities.work.email" "Work email" -}}
+{{- $wKey := promptStringOnce . "identities.work.sshKey" "Work SSH key" "id_rsa_work" -}}
+
+{{- $personalDir := promptStringOnce . "gitDirs.personal" "Personal repos directory" "~/repos/personal/" -}}
+{{- $workDir := promptStringOnce . "gitDirs.work" "Work repos directory" "~/repos/work/" -}}
+
+{{- /* Profile selection (full=all features, minimal=basic shell only) */ -}}
+{{- $profile := promptStringOnce . "profile" "Profile (full/minimal)" "full" -}}
+
+{{- /* Optional tool toggles - only ask for full profile */ -}}
+{{- $installAtuin := false -}}
+{{- $installZoxide := false -}}
+{{- $installFzf := false -}}
+{{- $enableSudoBiometrics := false -}}
+{{- if eq $profile "full" -}}
+{{-   $installAtuin = promptBoolOnce . "install_atuin" "Enable atuin shell history" true -}}
+{{-   $installZoxide = promptBoolOnce . "install_zoxide" "Enable zoxide smart cd" true -}}
+{{-   $installFzf = promptBoolOnce . "install_fzf" "Enable fzf fuzzy finder" true -}}
+{{-   $enableSudoBiometrics = promptBoolOnce . "enable_sudo_biometrics" "Enable biometric sudo (Touch ID on macOS)" true -}}
+{{- end }}
+
+[data]
+    # Profile (full=all features, minimal=basic shell only)
+    profile = {{ $profile | quote }}
+
+    # Machine identification
+{{- if eq .chezmoi.os "darwin" }}
+    os_type = "macos"
+{{- else if eq .chezmoi.os "linux" }}
+    {{- if env "WSL_DISTRO_NAME" }}
+    os_type = "wsl"
+    {{- else if and (stat "/etc/os-release") (contains "ID=ubuntu" (include "/etc/os-release")) }}
+    os_type = "ubuntu"
+    {{- else }}
+    os_type = "linux"
+    {{- end }}
+{{- else }}
+    os_type = "unknown"
+{{- end }}
+
+    # Optional tools
+    install_atuin = {{ $installAtuin }}
+    install_zoxide = {{ $installZoxide }}
+    install_fzf = {{ $installFzf }}
+    enable_sudo_biometrics = {{ $enableSudoBiometrics }}
+
+[data.identities.personal]
+    name = {{ $pName | quote }}
+    email = {{ $pEmail | quote }}
+    sshKey = {{ $pKey | quote }}
+
+[data.identities.work]
+    label = {{ $wLabel | quote }}
+    name = {{ $wName | quote }}
+    email = {{ $wEmail | quote }}
+    sshKey = {{ $wKey | quote }}
+
+[data.gitDirs]
+    # Ensure trailing slash for Git includeIf matching
+    personal = {{ $personalDir | trimSuffix "/" | printf "%s/" | quote }}
+    work = {{ $workDir | trimSuffix "/" | printf "%s/" | quote }}

@@ -1,0 +1,48 @@
+{{ if and (eq .chezmoi.os "linux") (eq .profile "full") -}}
+#!/usr/bin/env bash
+set -euo pipefail
+
+echo "==> Installing packages (Linux)..."
+
+# APT packages: global tiers + Linux-specific
+if command -v apt-get >/dev/null 2>&1; then
+  sudo apt-get update
+{{- /* Build list of APT packages from global tiers with name mappings */ -}}
+{{- $aptPkgs := list }}
+{{- range $tier := list "shell" "editor" "tools" "monitoring" }}
+{{- range index $.packages $tier }}
+{{- $pkg := . }}
+{{- if index $.packages.linux.apt_mappings . }}
+{{- $pkg = index $.packages.linux.apt_mappings . }}
+{{- end }}
+{{- $aptPkgs = append $aptPkgs $pkg }}
+{{- end }}
+{{- end }}
+{{- /* Add Linux-specific APT packages */ -}}
+{{- range .packages.linux.apt }}
+{{- $aptPkgs = append $aptPkgs . }}
+{{- end }}
+  sudo apt-get install -y {{ $aptPkgs | join " " }}
+fi
+
+# Homebrew packages (tools not in apt or where brew version preferred)
+if command -v brew >/dev/null 2>&1; then
+{{- $brewPkgs := list }}
+{{- range .packages.linux.brew }}
+{{- $brewPkgs = append $brewPkgs . }}
+{{- end }}
+{{- if gt (len $brewPkgs) 0 }}
+  brew install {{ $brewPkgs | join " " }}
+{{- end }}
+fi
+
+# Pip packages via pipx
+if command -v pipx &>/dev/null; then
+  echo "==> Installing pip packages via pipx..."
+{{- range .packages.pip }}
+  pipx install {{ . | quote }} || true
+{{- end }}
+fi
+
+echo "==> Package installation complete"
+{{ end -}}

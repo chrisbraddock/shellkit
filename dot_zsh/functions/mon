@@ -1,0 +1,114 @@
+# mon - unified system monitoring launcher
+# Auto-detects platform and GPU, launches appropriate tool
+#
+# Usage:
+#   mon          - launch best available dashboard (btop/htop)
+#   mon gpu      - GPU monitoring (mactop on macOS, nvitop/nvtop on Linux)
+#   mon cpu      - CPU thermals (s-tui) or process view (htop)
+#   mon net      - network bandwidth (iftop)
+#   mon disk     - disk I/O (iotop)
+#   mon sample   - JSON/CSV output for scripting
+
+case "${1:-}" in
+  gpu)
+    if [[ "$OS_TYPE" == "macos" ]]; then
+      if command -v mactop &>/dev/null; then
+        mactop "${@:2}"
+      elif command -v macmon &>/dev/null; then
+        macmon
+      else
+        echo "mon gpu: requires mactop/macmon (Apple Silicon only)" >&2
+        return 1
+      fi
+    else
+      if command -v nvitop &>/dev/null; then
+        nvitop "${@:2}"
+      elif command -v nvtop &>/dev/null; then
+        nvtop
+      elif command -v nvidia-smi &>/dev/null; then
+        nvidia-smi
+      else
+        echo "No GPU monitoring tool found. Install nvitop: pipx install nvitop" >&2
+        return 1
+      fi
+    fi
+    ;;
+
+  cpu)
+    if command -v s-tui &>/dev/null; then
+      s-tui
+    elif command -v htop &>/dev/null; then
+      htop
+    else
+      top
+    fi
+    ;;
+
+  net)
+    if command -v iftop &>/dev/null; then
+      sudo iftop "${@:2}"
+    else
+      if [[ "$OS_TYPE" == "macos" ]]; then
+        echo "Install iftop: brew install iftop" >&2
+      else
+        echo "Install iftop: sudo apt install iftop" >&2
+      fi
+      return 1
+    fi
+    ;;
+
+  disk)
+    if [[ "$OS_TYPE" == "macos" ]]; then
+      sudo fs_usage -f diskio "${@:2}"
+    elif command -v iotop &>/dev/null; then
+      sudo iotop "${@:2}"
+    else
+      echo "Install iotop: sudo apt install iotop" >&2
+      return 1
+    fi
+    ;;
+
+  sample)
+    # JSON/CSV output for scripting
+    if [[ "$OS_TYPE" == "macos" ]]; then
+      if command -v mactop &>/dev/null; then
+        mactop --headless --count 1 --format json
+      elif command -v macmon &>/dev/null; then
+        macmon pipe -s 1
+      else
+        echo "No sampling tool available" >&2
+        return 1
+      fi
+    else
+      if command -v nvidia-smi &>/dev/null; then
+        nvidia-smi --query-gpu=timestamp,name,utilization.gpu,memory.used,memory.total --format=csv,noheader
+      else
+        echo "nvidia-smi not found" >&2
+        return 1
+      fi
+    fi
+    ;;
+
+  help|--help|-h)
+    echo "mon - unified system monitoring"
+    echo ""
+    echo "Usage:"
+    echo "  mon          Launch best dashboard (btop/htop)"
+    echo "  mon gpu      GPU monitoring"
+    echo "  mon cpu      CPU thermals / process view"
+    echo "  mon net      Network bandwidth"
+    echo "  mon disk     Disk I/O"
+    echo "  mon sample   JSON/CSV output for scripting"
+    ;;
+
+  *)
+    # Default: best available dashboard
+    if command -v btop &>/dev/null; then
+      btop
+    elif command -v htop &>/dev/null; then
+      htop
+    else
+      top
+    fi
+    ;;
+esac

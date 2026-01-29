@@ -1,0 +1,2 @@
+# Amend last commit with staged changes, keeping the same message
+git commit --amend -C HEAD

@@ -1,0 +1,20 @@
+# Delete all local branches that have been merged into the current branch
+# Excludes master and main branches
+
+local current_branch=$(git branch --show-current)
+if [[ -z "$current_branch" ]]; then
+    echo "Cannot run in detached HEAD state" >&2
+    return 1
+fi
+echo "Deleting branches merged into: $current_branch"
+
+local count=0
+while read -r branch; do
+    git branch -d "$branch" && ((count++))
+done < <(git branch --merged | grep -v '^\*' | grep -vE '^[[:space:]]*(master|main)$')
+
+if [[ $count -eq 0 ]]; then
+    echo "No merged branches to delete"
+else
+    echo "Deleted $count merged branch(es)"
+fi

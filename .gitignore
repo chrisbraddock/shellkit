@@ -1,0 +1,13 @@
+.DS_Store
+
+.ignore/
+
+.claude/settings.local.json
+
+# Bluera plugins
+.bluera/
+!.bluera/bluera-base/
+!.bluera/bluera-base/config.json
+!.bluera/bluera-base/TODO.txt
+!.bluera/bluera-knowledge/
+!.bluera/bluera-knowledge/stores.config.json

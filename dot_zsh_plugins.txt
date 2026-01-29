@@ -1,0 +1,25 @@
+# ============================================================
+# Antidote Plugin List
+# ============================================================
+# Managed by chezmoi - edit source, then run: antidote bundle < ~/.zsh_plugins.txt > ~/.zsh_plugins.zsh
+#
+# Plugin annotations:
+#   kind:fpath   - Add to fpath only (for completions)
+#   kind:defer   - Defer loading for faster startup
+#   kind:clone   - Clone only, don't source
+# ============================================================
+
+# Prompt theme (must load first, not deferred)
+romkatv/powerlevel10k
+
+# Completions (fpath only, loaded before compinit)
+zsh-users/zsh-completions kind:fpath
+
+# Syntax highlighting (deferred for speed)
+zdharma-continuum/fast-syntax-highlighting kind:defer
+
+# Auto-suggestions (deferred for speed)
+zsh-users/zsh-autosuggestions kind:defer
+
+# History substring search (not deferred - bindings need widget defined)
+zsh-users/zsh-history-substring-search

@@ -1,0 +1,52 @@
+# ============================================================
+# SSH Configuration
+# ============================================================
+# Managed by chezmoi - Multi-identity support
+
+# Default settings for all hosts
+Host *
+    AddKeysToAgent yes
+{{- if eq .os_type "macos" }}
+    UseKeychain yes
+{{- end }}
+    IdentitiesOnly yes
+
+# ============================================================
+# GitHub - Personal
+# ============================================================
+Host github.com-personal
+    HostName github.com
+    User git
+    IdentityFile ~/.ssh/{{ .identities.personal.sshKey }}
+
+# ============================================================
+# GitHub - Work ({{ .identities.work.label }})
+# ============================================================
+Host github.com-{{ .identities.work.label }}
+    HostName github.com
+    User git
+    IdentityFile ~/.ssh/{{ .identities.work.sshKey }}
+
+# ============================================================
+# GitHub - Default (uses personal)
+# ============================================================
+Host github.com
+    HostName github.com
+    User git
+    IdentityFile ~/.ssh/{{ .identities.personal.sshKey }}
+
+# ============================================================
+# GitLab (personal)
+# ============================================================
+Host gitlab.com
+    HostName gitlab.com
+    User git
+    IdentityFile ~/.ssh/{{ .identities.personal.sshKey }}
+
+# ============================================================
+# Bitbucket (personal)
+# ============================================================
+Host bitbucket.org
+    HostName bitbucket.org
+    User git
+    IdentityFile ~/.ssh/{{ .identities.personal.sshKey }}

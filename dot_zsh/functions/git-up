@@ -1,0 +1,13 @@
+# Pull and show a log of changes
+
+git pull "$@" || return 1
+
+# Show abbreviated commit log of what was merged/rebased
+# HEAD@{1} refers to previous HEAD before pull
+if git rev-parse HEAD@{1} &>/dev/null; then
+    # Only show log if HEAD actually moved
+    if [[ "$(git rev-parse HEAD)" != "$(git rev-parse HEAD@{1})" ]]; then
+        echo "Log:"
+        git log --color --pretty=oneline --abbrev-commit HEAD@{1}.. | sed 's/^/  /'
+    fi
+fi

@@ -1,0 +1,47 @@
+{{ if and (eq .chezmoi.os "darwin") (eq .profile "full") .enable_sudo_biometrics -}}
+#!/usr/bin/env bash
+# Auto-enable Touch ID for sudo on macOS
+# hash: {{ include "dot_zsh/functions/sudo-biometrics" | sha256sum }}
+
+set -euo pipefail
+
+SUDO_LOCAL="/etc/pam.d/sudo_local"
+TEMPLATE="/etc/pam.d/sudo_local.template"
+
+# Check if already enabled
+if [[ -f "$SUDO_LOCAL" ]] && grep -q "^auth.*pam_tid.so" "$SUDO_LOCAL" 2>/dev/null; then
+    echo "==> Touch ID for sudo: already enabled"
+    exit 0
+fi
+
+# Check if template exists
+if [[ ! -f "$TEMPLATE" ]]; then
+    echo "==> Touch ID for sudo: template not found, skipping"
+    echo "    (May not be supported on this macOS version)"
+    exit 0
+fi
+
+echo "==> Enabling Touch ID for sudo..."
+
+# Backup existing file if present
+if [[ -f "$SUDO_LOCAL" ]]; then
+    BACKUP="${SUDO_LOCAL}.bak.$(date +%Y%m%d%H%M%S)"
+    echo "    Backing up: $SUDO_LOCAL -> $BACKUP"
+    sudo cp "$SUDO_LOCAL" "$BACKUP"
+fi
+
+# Copy template
+sudo cp "$TEMPLATE" "$SUDO_LOCAL"
+
+# Uncomment pam_tid.so line
+if grep -q "#.*pam_tid.so" "$SUDO_LOCAL"; then
+    sudo sed -i '' 's/^#\(auth.*pam_tid.so\)/\1/' "$SUDO_LOCAL"
+fi
+
+# Validate
+if grep -q "^auth.*pam_tid.so" "$SUDO_LOCAL"; then
+    echo "    Touch ID for sudo enabled successfully"
+else
+    echo "    Warning: Could not verify pam_tid.so was enabled" >&2
+fi
+{{ end -}}

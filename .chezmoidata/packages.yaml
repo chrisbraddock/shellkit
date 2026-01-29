@@ -1,0 +1,74 @@
+packages:
+  # Tier 0: Bootstrap (manual/minimal - not in this file)
+  # git, curl, chezmoi, brew - assumed present before chezmoi runs
+
+  # Tier 1: Shell runtime essentials
+  shell:
+    - zsh
+    - fzf
+    - zoxide
+
+  # Tier 2: Editor essentials
+  editor:
+    - neovim
+    - ripgrep
+    - fd
+
+  # Tier 3: Nice-to-have CLI tools
+  tools:
+    - jq
+    - bat
+    - tree
+    - tmux
+    - git-lfs
+    - git-cliff    # Changelog generator
+    - pipx         # Python package manager for CLI tools
+
+  # Tier 4: System monitoring
+  monitoring:
+    - btop
+    - htop
+
+  # Pip packages (installed via pipx)
+  pip:
+    - dunk         # Pretty git diff colorizer
+    - nvitop       # GPU process monitor (cross-platform)
+
+  # OS-specific packages
+  darwin:
+    brew:
+      - antidote
+      - atuin
+      - eza           # Modern ls replacement (not in apt)
+      - grc
+      - colordiff
+      - git-delta
+      - dos2unix
+      - mactop        # Apple Silicon monitoring TUI
+      - macmon        # Apple Silicon monitoring (mon cpu fallback)
+      - iftop         # Network monitoring (for mon net)
+    cask: []          # No casks needed
+
+  linux:
+    # APT package name mappings (where names differ from global tiers)
+    apt_mappings:
+      fd: fd-find
+      bat: batcat
+    # Linux-specific APT packages (not in global tiers)
+    apt:
+      - iftop
+      - iotop
+      - wavemon
+      - linux-tools-common   # perf
+      - stress-ng
+      - s-tui
+      - xclip                # clipboard utilities
+      - nvtop                # GPU process monitor
+      - fprintd              # fingerprint daemon
+      - libpam-fprintd       # PAM module for fingerprint auth
+    # Tools not available in apt (global tiers handle the rest)
+    brew:
+      - antidote             # Zsh plugin manager, not in apt
+      - atuin                # Shell history, not in apt
+      - eza                  # Modern ls replacement, not in apt
+      - git-delta            # Git diff viewer, not in apt

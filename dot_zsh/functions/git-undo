@@ -1,0 +1,6 @@
+# Undo last commit but keep changes staged
+if ! git rev-parse --verify HEAD^ &>/dev/null; then
+    echo "Cannot undo: no parent commit (this is the first commit)" >&2
+    return 1
+fi
+git reset --soft HEAD^

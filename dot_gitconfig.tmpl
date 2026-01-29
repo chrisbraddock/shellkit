@@ -1,0 +1,139 @@
+# ============================================================
+# Global Git Configuration
+# ============================================================
+# Managed by chezmoi - edit source at ~/.local/share/chezmoi/dot_gitconfig.tmpl
+
+# ============================================================
+# User Information - Directory-based identity selection
+# ============================================================
+[user]
+    useConfigOnly = true
+
+# Default to personal identity for ~/repos/ (work override below)
+[includeIf "gitdir:{{ .chezmoi.homeDir }}/repos/"]
+    path = ~/.gitconfig-personal
+
+[includeIf "gitdir:{{ .gitDirs.personal }}"]
+    path = ~/.gitconfig-personal
+
+[includeIf "gitdir:{{ .gitDirs.work }}"]
+    path = ~/.gitconfig-work
+
+# ============================================================
+# Core Settings
+# ============================================================
+[core]
+    pager = cat
+
+# ============================================================
+# GitHub/Hub Configuration
+# ============================================================
+[hub]
+    protocol = https
+
+# ============================================================
+# Color Settings
+# ============================================================
+[color]
+    diff = auto
+    status = auto
+    branch = auto
+    ui = always
+    interactive = auto
+
+# ============================================================
+# Apply Settings
+# ============================================================
+[apply]
+    whitespace = nowarn
+
+# ============================================================
+# Help and Autocorrect
+# ============================================================
+[help]
+    autocorrect = 1
+
+# ============================================================
+# Push Settings
+# ============================================================
+[push]
+    default = current
+    autoSetupRemote = true
+
+# ============================================================
+# URL Rewrites
+# ============================================================
+[url "https://"]
+    insteadOf = git://
+
+# ============================================================
+# Initialization
+# ============================================================
+[init]
+    defaultBranch = main
+
+# ============================================================
+# Git LFS
+# ============================================================
+[filter "lfs"]
+    clean = git-lfs clean -- %f
+    smudge = git-lfs smudge -- %f
+    process = git-lfs filter-process
+    required = true
+
+# ============================================================
+# Diff/Merge Tools (macOS)
+# ============================================================
+{{- if eq .os_type "macos" }}
+[difftool "sourcetree"]
+    cmd = opendiff \"$LOCAL\" \"$REMOTE\"
+    path =
+
+[mergetool "sourcetree"]
+    cmd = /Applications/Sourcetree.app/Contents/Resources/opendiff-w.sh \"$LOCAL\" \"$REMOTE\" -ancestor \"$BASE\" -merge \"$MERGED\"
+    trustExitCode = true
+{{- end }}
+
+# ============================================================
+# Protocol Settings
+# ============================================================
+[protocol "file"]
+    allow = always
+
+# ============================================================
+# Credential Helpers
+# ============================================================
+[credential]
+    helper =
+{{- if eq .os_type "macos" }}
+    helper = osxkeychain
+{{- else if eq .os_type "linux" }}
+    helper = store
+{{- else if eq .os_type "ubuntu" }}
+    helper = store
+{{- else if eq .os_type "wsl" }}
+    helper = store
+{{- end }}
+
+[credential "https://dev.azure.com"]
+    useHttpPath = true
+
+[credential "https://huggingface.co"]
+    provider = generic
+
+# ============================================================
+# Delta (enhanced diffs)
+# ============================================================
+[pager]
+    diff = "delta 2>/dev/null || cat"
+    log = "delta 2>/dev/null || cat"
+    reflog = "delta 2>/dev/null || cat"
+    show = "delta 2>/dev/null || cat"
+
+[delta]
+    navigate = true
+    side-by-side = false
+    line-numbers = true
+
+[diff]
+    colorMoved = default

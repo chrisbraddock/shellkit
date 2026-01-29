@@ -1,0 +1,44 @@
+# shellkit chezmoiignore
+# Files to skip during chezmoi apply
+
+# Development/testing files
+shellkit-test.zsh
+README.md
+LICENSE
+init.sh
+install.sh
+scripts/
+cliff.toml
+VERSION
+CHANGELOG.md
+
+# Editor/IDE files
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# macOS
+.DS_Store
+.AppleDouble
+.LSOverride
+
+# Git (chezmoi has its own version control)
+.git/
+.gitignore
+
+# Claude/bluera tooling
+.claude/
+.bluera/
+.ignore/
+
+# Build artifacts
+*.log
+*.tmp
+
+# Profile-based ignores (minimal profile skips plugin manager)
+{{ if eq .profile "minimal" }}
+dot_zsh_plugins.txt
+dot_p10k.zsh
+{{ end }}
