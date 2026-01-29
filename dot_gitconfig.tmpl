@@ -15,9 +15,11 @@
 
 [includeIf "gitdir:{{ .gitDirs.personal }}"]
     path = ~/.gitconfig-personal
+{{- if .identities.work.enabled }}
 
 [includeIf "gitdir:{{ .gitDirs.work }}"]
     path = ~/.gitconfig-work
+{{- end }}
 
 # ============================================================
 # Core Settings

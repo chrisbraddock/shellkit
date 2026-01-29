@@ -8,14 +8,22 @@ sourceDir = {{ .chezmoi.sourceDir | quote }}
 {{- $pEmail := promptStringOnce . "identities.personal.email" "Personal email" -}}
 {{- $pKey := promptStringOnce . "identities.personal.sshKey" "Personal SSH key" "id_rsa" -}}
 
-{{- /* Work identity - label is configurable for privacy */ -}}
-{{- $wLabel := promptStringOnce . "identities.work.label" "Work identity label (e.g., work, company)" "work" -}}
-{{- $wName := promptStringOnce . "identities.work.name" "Work full name" $pName -}}
-{{- $wEmail := promptStringOnce . "identities.work.email" "Work email" -}}
-{{- $wKey := promptStringOnce . "identities.work.sshKey" "Work SSH key" "id_rsa_work" -}}
+{{- /* Work identity - optional */ -}}
+{{- $enableWork := promptBoolOnce . "identities.work.enabled" "Enable work identity" true -}}
+{{- $wLabel := "" -}}
+{{- $wName := "" -}}
+{{- $wEmail := "" -}}
+{{- $wKey := "" -}}
+{{- $workDir := "" -}}
+{{- if $enableWork -}}
+{{-   $wLabel = promptStringOnce . "identities.work.label" "Work identity label (e.g., work, company)" "work" -}}
+{{-   $wName = promptStringOnce . "identities.work.name" "Work full name" $pName -}}
+{{-   $wEmail = promptStringOnce . "identities.work.email" "Work email" -}}
+{{-   $wKey = promptStringOnce . "identities.work.sshKey" "Work SSH key" "id_rsa_work" -}}
+{{-   $workDir = promptStringOnce . "gitDirs.work" "Work repos directory" "~/repos/work/" -}}
+{{- end -}}
 
 {{- $personalDir := promptStringOnce . "gitDirs.personal" "Personal repos directory" "~/repos/personal/" -}}
-{{- $workDir := promptStringOnce . "gitDirs.work" "Work repos directory" "~/repos/work/" -}}
 
 {{- /* Profile selection (full=all features, minimal=basic shell only) */ -}}
 {{- $profile := promptStringOnce . "profile" "Profile (full/minimal)" "full" -}}
@@ -63,12 +71,17 @@ sourceDir = {{ .chezmoi.sourceDir | quote }}
     sshKey = {{ $pKey | quote }}
 
 [data.identities.work]
+    enabled = {{ $enableWork }}
+{{- if $enableWork }}
     label = {{ $wLabel | quote }}
     name = {{ $wName | quote }}
     email = {{ $wEmail | quote }}
     sshKey = {{ $wKey | quote }}
+{{- end }}
 
 [data.gitDirs]
     # Ensure trailing slash for Git includeIf matching
     personal = {{ $personalDir | trimSuffix "/" | printf "%s/" | quote }}
+{{- if $enableWork }}
     work = {{ $workDir | trimSuffix "/" | printf "%s/" | quote }}
+{{- end }}

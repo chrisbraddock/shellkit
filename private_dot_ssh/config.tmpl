@@ -19,6 +19,7 @@ Host github.com-personal
     User git
     IdentityFile ~/.ssh/{{ .identities.personal.sshKey }}
 
+{{- if .identities.work.enabled }}
 # ============================================================
 # GitHub - Work ({{ .identities.work.label }})
 # ============================================================
@@ -26,6 +27,7 @@ Host github.com-{{ .identities.work.label }}
     HostName github.com
     User git
     IdentityFile ~/.ssh/{{ .identities.work.sshKey }}
+{{- end }}
 
 # ============================================================
 # GitHub - Default (uses personal)

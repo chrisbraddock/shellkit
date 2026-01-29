@@ -42,3 +42,8 @@ CHANGELOG.md
 dot_zsh_plugins.txt
 dot_p10k.zsh
 {{ end }}
+
+# Work identity disabled - skip work gitconfig
+{{ if not .identities.work.enabled }}
+dot_gitconfig-work.tmpl
+{{ end }}
