@@ -76,8 +76,9 @@ cd ~/repos/shellkit && ./init.sh
 <details>
 <summary><strong>🔧 What happens on first run?</strong></summary>
 
-1. Prompt for identity settings (name, email, SSH key for personal and work)
-2. Prompt for repo directories and optional tool toggles
+1. Prompt for Git identity (name, email, SSH key)
+2. Prompt for optional work identity (can skip for personal-only setups)
+3. Prompt for repo directories and optional tool toggles
 3. Install Homebrew (if not present)
 4. Install all packages from `.chezmoidata/packages.yaml`
 5. Apply all dotfiles and enable biometric sudo (if selected)
@@ -190,6 +191,7 @@ Configure personal settings in `.chezmoi.toml.tmpl`. On first run, chezmoi promp
 | `.identities.personal.name` | Personal full name (for git commits) |
 | `.identities.personal.email` | Personal email (for git commits) |
 | `.identities.personal.sshKey` | Personal SSH key filename |
+| `.identities.work.enabled` | Enable separate work identity (optional) |
 | `.identities.work.label` | Work identity label (e.g., `work`, `company`) |
 | `.identities.work.name` | Work full name |
 | `.identities.work.email` | Work email |
