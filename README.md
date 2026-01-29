@@ -18,13 +18,9 @@
 
 Shellkit is a complete Zsh dotfiles system built on chezmoi and Antidote. It replaces heavy frameworks like Oh-My-Zsh with a lean, declarative configuration that starts fast and works across macOS, Linux, and WSL.
 
-```
-┌─────────────────────────────────────────────────────────────────┐
-│                         Shell Startup                           │
-├─────────────────────────────────────────────────────────────────┤
-│  P10k Instant Prompt  →  Antidote (deferred)  →  Tool Inits    │
-│        ⚡ <50ms              🔌 lazy load          🛠️ fzf/zoxide │
-└─────────────────────────────────────────────────────────────────┘
+```mermaid
+flowchart LR
+    A["⚡ P10k Instant Prompt<br/><i>~50ms</i>"] --> B["🔌 Antidote<br/><i>lazy load</i>"] --> C["🛠️ Tool Inits<br/><i>fzf/zoxide</i>"]
 ```
 
 **Key benefits:**
