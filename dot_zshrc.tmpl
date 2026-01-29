@@ -148,7 +148,7 @@ done
 fpath=("${ZDOTDIR:-$HOME}/.zsh/functions" $fpath)
 
 # Autoload shellkit functions
-autoload -Uz reload git-delete-local-merged git-all git-amend git-credit git-undo git-promote git-up
+autoload -Uz shellkit reload git-delete-local-merged git-all git-amend git-credit git-undo git-promote git-up
 {{- if eq .profile "full" }}
 autoload -Uz mon sudo-biometrics
 {{- end }}
