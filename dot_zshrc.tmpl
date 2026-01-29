@@ -83,6 +83,12 @@ if [[ -n "$ANTIDOTE_HOME" ]]; then
     fi
     source "${zsh_plugins}.zsh"
 fi
+{{- else }}
+# ------------------------------------------------------------
+# Powerlevel10k (minimal profile - direct load without antidote)
+# ------------------------------------------------------------
+[[ -f "${HOME}/.powerlevel10k/powerlevel10k.zsh-theme" ]] && \
+    source "${HOME}/.powerlevel10k/powerlevel10k.zsh-theme"
 {{- end }}
 
 # ------------------------------------------------------------

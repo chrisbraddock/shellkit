@@ -1,0 +1,14 @@
+#!/usr/bin/env bash
+# Bootstrap: ensure powerlevel10k is available (required for all profiles)
+set -euo pipefail
+
+P10K_DIR="${HOME}/.powerlevel10k"
+
+if [[ -d "$P10K_DIR" ]]; then
+    echo "==> powerlevel10k already installed"
+    exit 0
+fi
+
+echo "==> Installing powerlevel10k..."
+git clone --depth=1 https://github.com/romkatv/powerlevel10k.git "$P10K_DIR"
+echo "==> powerlevel10k installed"

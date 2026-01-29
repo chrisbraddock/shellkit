@@ -37,10 +37,9 @@ CHANGELOG.md
 *.log
 *.tmp
 
-# Profile-based ignores (minimal profile skips plugin manager)
+# Profile-based ignores (minimal profile skips antidote plugin list)
 {{ if eq .profile "minimal" }}
 dot_zsh_plugins.txt
-dot_p10k.zsh
 {{ end }}
 
 # Work identity disabled - skip work gitconfig
