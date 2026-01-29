@@ -4,12 +4,12 @@
 sourceDir = {{ .chezmoi.sourceDir | quote }}
 
 {{- /* Identity prompts (asked once; stored in local config) */ -}}
-{{- $pName := promptStringOnce . "identities.personal.name" "Personal full name" -}}
-{{- $pEmail := promptStringOnce . "identities.personal.email" "Personal email" -}}
-{{- $pKey := promptStringOnce . "identities.personal.sshKey" "Personal SSH key" "id_rsa" -}}
+{{- $pName := promptStringOnce . "identities.personal.name" "Git name (personal)" -}}
+{{- $pEmail := promptStringOnce . "identities.personal.email" "Git email (personal)" -}}
+{{- $pKey := promptStringOnce . "identities.personal.sshKey" "SSH key filename (personal)" "id_rsa" -}}
 
 {{- /* Work identity - optional */ -}}
-{{- $enableWork := promptBoolOnce . "identities.work.enabled" "Enable work identity" true -}}
+{{- $enableWork := promptBoolOnce . "identities.work.enabled" "Enable separate work identity" true -}}
 {{- $wLabel := "" -}}
 {{- $wName := "" -}}
 {{- $wEmail := "" -}}
@@ -17,9 +17,9 @@ sourceDir = {{ .chezmoi.sourceDir | quote }}
 {{- $workDir := "" -}}
 {{- if $enableWork -}}
 {{-   $wLabel = promptStringOnce . "identities.work.label" "Work identity label (e.g., work, company)" "work" -}}
-{{-   $wName = promptStringOnce . "identities.work.name" "Work full name" $pName -}}
-{{-   $wEmail = promptStringOnce . "identities.work.email" "Work email" -}}
-{{-   $wKey = promptStringOnce . "identities.work.sshKey" "Work SSH key" "id_rsa_work" -}}
+{{-   $wName = promptStringOnce . "identities.work.name" "Git name (work)" $pName -}}
+{{-   $wEmail = promptStringOnce . "identities.work.email" "Git email (work)" -}}
+{{-   $wKey = promptStringOnce . "identities.work.sshKey" "SSH key filename (work)" "id_rsa_work" -}}
 {{-   $workDir = promptStringOnce . "gitDirs.work" "Work repos directory" "~/repos/work/" -}}
 {{- end -}}
 
