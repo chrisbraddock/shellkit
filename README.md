@@ -95,9 +95,13 @@ Shellkit supports two profiles for different use cases:
 | 🖥️ **full** | All packages, plugins, and tools | Workstations, development machines |
 | 📟 **minimal** | Basic shell config only | Servers, SSH hosts, containers |
 
-Select your profile during `chezmoi init`. Minimal profile skips:
+Select your profile during `chezmoi init`.
+
+**Both profiles include:** zsh, Powerlevel10k prompt, git config, shell aliases
+
+**Full profile adds:**
 - Package installation (Homebrew, APT)
-- Antidote plugin manager
+- Antidote plugin manager + zsh plugins
 - Tool integrations (atuin, zoxide, fzf)
 - Biometric sudo setup
 
@@ -121,6 +125,7 @@ shellkit/
 │   │   ├── system.zsh.tmpl     # File/network helpers (ll, etc.)
 │   │   └── tools.zsh           # Editor and tool aliases
 │   ├── functions/              # Shell utilities and git helpers
+│   │   ├── shellkit            # Shellkit management (update, edit, diff)
 │   │   ├── mon                 # System monitoring launcher
 │   │   ├── reload              # Reload shell configuration
 │   │   ├── sudo-biometrics     # Biometric sudo setup
@@ -278,6 +283,10 @@ These are acceptable for personal development machines but should be reviewed fo
 
 | Function | Description |
 |:---------|:------------|
+| `shellkit update` | Pull latest config and apply changes |
+| `shellkit edit` | Edit config files with chezmoi |
+| `shellkit diff` | Show pending changes |
+| `shellkit cd` | Jump to shellkit source directory |
 | `reload` | Reload shell configuration |
 | `mon` | System monitoring (`mon cpu`, `mon gpu`, `mon net`\*, `mon disk`\*) |
 | `sudo-biometrics` | Biometric sudo auth (`status`, `enable`, `disable`, `test`) |

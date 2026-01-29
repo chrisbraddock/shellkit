@@ -1,0 +1,36 @@
+#!/usr/bin/env zsh
+# shellkit - manage shellkit configuration
+# Usage: shellkit <command>
+
+local cmd="${1:-help}"
+
+case "$cmd" in
+    update)
+        echo "==> Updating shellkit..."
+        chezmoi update && chezmoi apply
+        echo "==> Done. Restart your shell or run 'reload' to apply changes."
+        ;;
+    edit)
+        chezmoi edit --apply
+        ;;
+    diff)
+        chezmoi diff
+        ;;
+    status)
+        chezmoi status
+        ;;
+    cd)
+        cd "$(chezmoi source-path)"
+        ;;
+    help|--help|-h|*)
+        echo "shellkit - manage your shell configuration"
+        echo ""
+        echo "Commands:"
+        echo "  update    Pull latest and apply (chezmoi update && apply)"
+        echo "  edit      Edit config files (chezmoi edit --apply)"
+        echo "  diff      Show pending changes (chezmoi diff)"
+        echo "  status    Show changed files (chezmoi status)"
+        echo "  cd        Change to shellkit source directory"
+        echo "  help      Show this help"
+        ;;
+esac
