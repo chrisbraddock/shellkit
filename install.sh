@@ -17,6 +17,31 @@ for cmd in curl git; do
     fi
 done
 
+# Check if zsh is the default login shell
+if [[ "$SHELL" != */zsh ]]; then
+    echo ""
+    echo "NOTE: shellkit requires zsh as your default shell."
+    echo ""
+
+    if command -v zsh &>/dev/null; then
+        ZSH_PATH=$(command -v zsh)
+        echo "zsh is installed at: $ZSH_PATH"
+        read -p "Change default shell to zsh now? [y/N] " -n 1 -r
+        echo ""
+        if [[ $REPLY =~ ^[Yy]$ ]]; then
+            if chsh -s "$ZSH_PATH"; then
+                echo "Default shell changed. Log out and back in to use zsh."
+            else
+                echo "Failed to change shell. Run manually: chsh -s $ZSH_PATH"
+            fi
+        fi
+    else
+        echo "zsh will be installed by shellkit. After install completes, run:"
+        echo "  chsh -s \$(which zsh)"
+    fi
+    echo ""
+fi
+
 # Install chezmoi if needed
 if ! command -v chezmoi &>/dev/null; then
     echo "==> Installing chezmoi..."
