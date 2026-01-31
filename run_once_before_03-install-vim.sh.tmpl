@@ -1,0 +1,35 @@
+#!/usr/bin/env bash
+# Bootstrap: ensure vim is installed (required for all profiles)
+set -euo pipefail
+
+# Check for full vim (not vim-tiny) by verifying +syntax feature
+if vim --version 2>/dev/null | grep -q '+syntax'; then
+    echo "==> vim (full) already installed"
+    exit 0
+fi
+
+echo "==> Installing vim..."
+
+{{ if eq .chezmoi.os "darwin" -}}
+# macOS: use Homebrew
+if command -v brew &>/dev/null; then
+    brew install vim
+else
+    echo "ERROR: Homebrew required to install vim on macOS" >&2
+    exit 1
+fi
+{{ else if eq .chezmoi.os "linux" -}}
+# Linux: use apt or yum (vim replaces vim-tiny on Debian/Ubuntu)
+if command -v apt-get &>/dev/null; then
+    sudo apt-get update && sudo apt-get install -y vim
+elif command -v yum &>/dev/null; then
+    sudo yum install -y vim
+elif command -v dnf &>/dev/null; then
+    sudo dnf install -y vim
+else
+    echo "ERROR: No supported package manager found (apt, yum, dnf)" >&2
+    exit 1
+fi
+{{ end -}}
+
+echo "==> vim installed successfully"
