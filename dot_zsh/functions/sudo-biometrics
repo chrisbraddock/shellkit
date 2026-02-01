@@ -11,11 +11,64 @@
 # - Password fallback always preserved
 # - Recovery instructions on failure
 
+# Detection helpers for conditions that disable Touch ID on macOS
+_detect_displaylink() {
+    pgrep -q "DisplayLink" 2>/dev/null || pgrep -q "displayplacer" 2>/dev/null
+}
+
+_detect_screen_recording() {
+    # Check for common screen recording indicators
+    # - screencapture: macOS built-in
+    # - replayd: macOS screen recording daemon
+    # - Zoom CptHost: Zoom screen sharing subprocess
+    pgrep -q "screencapture" 2>/dev/null || \
+    pgrep -q "replayd" 2>/dev/null || \
+    (pgrep -q "zoom.us" 2>/dev/null && pgrep -q "CptHost" 2>/dev/null)
+}
+
+_detect_tmux_without_reattach() {
+    # Touch ID requires tty connection; tmux/screen break this unless pam_reattach is installed
+    if [[ -n "$TMUX" ]] || [[ -n "$STY" ]]; then
+        # Check for pam_reattach in common locations
+        [[ ! -f /opt/homebrew/lib/pam/pam_reattach.so ]] && \
+        [[ ! -f /usr/local/lib/pam/pam_reattach.so ]]
+    else
+        return 1  # Not in tmux/screen
+    fi
+}
+
 _sudo_bio_macos_status() {
     local sudo_local="/etc/pam.d/sudo_local"
+    local warnings=()
+
     if [[ -f "$sudo_local" ]] && grep -q "^auth.*pam_tid.so" "$sudo_local" 2>/dev/null; then
         echo "enabled: Touch ID (macOS)"
         echo "  config: $sudo_local"
+
+        # Check for conditions that silently disable Touch ID
+        if _detect_displaylink; then
+            warnings+=("DisplayLink detected - Touch ID disabled by macOS security")
+        fi
+
+        if _detect_screen_recording; then
+            warnings+=("Screen recording active - Touch ID disabled by macOS security")
+        fi
+
+        if _detect_tmux_without_reattach; then
+            warnings+=("tmux/screen session without pam_reattach - Touch ID unavailable")
+            warnings+=("  Install: brew install pam-reattach (see 'sudo-biometrics help')")
+        fi
+
+        # Display warnings if any
+        if [[ ${#warnings[@]} -gt 0 ]]; then
+            echo ""
+            for warn in "${warnings[@]}"; do
+                echo "  ⚠️  $warn"
+            done
+            echo ""
+            echo "  Touch ID is configured but may fall back to password due to above."
+        fi
+
         return 0
     else
         echo "disabled: Touch ID not configured"
@@ -252,6 +305,20 @@ PLATFORMS:
     macOS    Touch ID via pam_tid.so (auto-enabled, survives updates)
     Linux    Fingerprint via fprintd (prints instructions)
     WSL      Windows Hello via pam_wsl_hello.so (prints instructions)
+
+MACOS TOUCH ID LIMITATIONS:
+    macOS silently disables Touch ID for sudo in certain conditions:
+    - DisplayLink external displays (security restriction)
+    - Screen recording/sharing active (Zoom, OBS, etc.)
+    - tmux/screen sessions (no tty connection)
+
+    For tmux/screen support, install pam_reattach:
+        brew install pam-reattach
+
+    Then add to /etc/pam.d/sudo_local (BEFORE pam_tid.so):
+        auth     optional     pam_reattach.so
+
+    The 'status' command detects and warns about these conditions.
 
 EXAMPLES:
     sudo-biometrics status
