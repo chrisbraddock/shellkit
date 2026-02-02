@@ -2,6 +2,18 @@
 
 All notable changes to shellkit will be documented in this file.
 
+## [1.1.0] - 2026-02-02
+
+
+### Documentation
+
+- Replace ASCII diagram with mermaid flowchart
+
+
+### Features
+
+- Add vim to bootstrap tier for all profiles
+- Detect conditions that disable Touch ID on macOS
 ## [1.0.1] - 2026-01-29
 
 
