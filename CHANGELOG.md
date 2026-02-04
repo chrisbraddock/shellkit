@@ -2,6 +2,13 @@
 
 All notable changes to shellkit will be documented in this file.
 
+## [1.2.0] - 2026-02-04
+
+
+### Features
+
+- Add secret management with direnv and 1Password CLI
+- Add .zshrc.local for machine-specific customizations
 ## [1.1.0] - 2026-02-02
 
 
