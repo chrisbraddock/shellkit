@@ -313,6 +313,7 @@ secrets op-login
 | `gcob` | `git checkout -b` | Create and switch branch |
 | `gb` | `git branch` | List branches |
 | `gl` | `git log` | Show commit log |
+| `glog` | `git log --oneline --graph --decorate` | Pretty one-line log |
 | `glg` | `git log --graph` | Commit graph |
 | `gf` | `git fetch` | Fetch remote |
 | `gpl` | `git pull` | Pull changes |

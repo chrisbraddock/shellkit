@@ -10,6 +10,7 @@
 
 alias gs='git status'
 alias gl='git log'
+alias glog='git log --oneline --graph --decorate'
 alias glg='git log --graph'
 alias gls='git log --stat'
 alias glp='git log --patch'
