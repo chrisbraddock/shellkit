@@ -46,6 +46,7 @@ flowchart LR
 | 💻 **OS-aware aliases** | Platform-specific commands for macOS/Linux/WSL |
 | 👆 **Touch ID for sudo** | Biometric sudo on macOS (auto-enabled) |
 | 👥 **Multi-identity Git** | Separate personal and work Git/SSH identities |
+| 🔐 **Secret management** | Per-directory env vars with direnv + 1Password CLI |
 
 ## 📥 Installation
 
@@ -237,6 +238,48 @@ These are acceptable for personal development machines but should be reviewed fo
 
 </details>
 
+### 🔐 Secret Management
+
+Shellkit includes [direnv](https://direnv.net/) for per-directory environment variables and optional [1Password CLI](https://developer.1password.com/docs/cli/) integration.
+
+```bash
+# Create .envrc in your project
+secrets init
+
+# Edit and add secrets
+secrets edit
+
+# Trust and load the file
+secrets allow
+```
+
+<details>
+<summary><strong>Using 1Password CLI</strong></summary>
+
+Instead of hardcoding secrets, reference them from 1Password:
+
+```bash
+# In your .envrc:
+export OPENAI_API_KEY=$(op read "op://Development/OpenAI/api-key")
+export GITHUB_TOKEN=$(op read "op://Development/GitHub CLI/token")
+```
+
+Benefits:
+- Secrets are fetched at load time, never written to disk
+- Uses biometric/password authentication
+- Easy to share patterns (`.envrc.example`) without exposing values
+
+Setup:
+```bash
+# Check 1Password status
+secrets op-status
+
+# Sign in (requires 1Password app integration enabled)
+secrets op-login
+```
+
+</details>
+
 ---
 
 ## 📚 Aliases Reference
@@ -288,6 +331,7 @@ These are acceptable for personal development machines but should be reviewed fo
 | `reload` | Reload shell configuration |
 | `mon` | System monitoring (`mon cpu`, `mon gpu`, `mon net`\*, `mon disk`\*) |
 | `sudo-biometrics` | Biometric sudo auth (`status`, `enable`, `disable`, `test`) |
+| `secrets` | Secret management (`status`, `init`, `edit`, `allow`, `op-login`) |
 | `wimip` | Show machine's IP address |
 
 \* Requires sudo

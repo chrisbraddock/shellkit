@@ -7,6 +7,7 @@ packages:
     - zsh
     - fzf
     - zoxide
+    - direnv
 
   # Tier 2: Editor essentials
   editor:
@@ -47,7 +48,8 @@ packages:
       - mactop        # Apple Silicon monitoring TUI
       - macmon        # Apple Silicon monitoring (mon cpu fallback)
       - iftop         # Network monitoring (for mon net)
-    cask: []          # No casks needed
+    cask:
+      - 1password-cli   # Secret management CLI
 
   linux:
     # APT package name mappings (where names differ from global tiers)
