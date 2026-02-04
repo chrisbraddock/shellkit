@@ -27,6 +27,7 @@ shellkit/
 - **Functions**: Add new functions to `dot_zsh/functions/` and autoload in `dot_zshrc.tmpl`
 - **Aliases**: Add to appropriate file in `dot_zsh/aliases/`
 - **Packages**: Define in `.chezmoidata/packages.yaml`
+- **Local overrides**: Users can create `~/.zshrc.local` for machine-specific config (not managed by chezmoi)
 
 ## Development Commands
 

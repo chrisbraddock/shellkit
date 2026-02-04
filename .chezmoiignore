@@ -37,6 +37,9 @@ CHANGELOG.md
 *.log
 *.tmp
 
+# Local customization files (machine-specific, not synced)
+.zshrc.local
+
 # Profile-based ignores (minimal profile skips antidote plugin list)
 {{ if eq .profile "minimal" }}
 dot_zsh_plugins.txt

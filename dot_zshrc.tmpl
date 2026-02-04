@@ -198,3 +198,12 @@ fi
 # ------------------------------------------------------------
 
 [[ -f "${HOME}/.iterm2_shell_integration.zsh" ]] && source "${HOME}/.iterm2_shell_integration.zsh"
+
+# ------------------------------------------------------------
+# Local Customizations (not managed by chezmoi)
+# ------------------------------------------------------------
+# Create ~/.zshrc.local for machine-specific config that won't
+# conflict with shellkit updates. This file is sourced last,
+# so it can override any settings above.
+
+[[ -f "${ZDOTDIR:-$HOME}/.zshrc.local" ]] && source "${ZDOTDIR:-$HOME}/.zshrc.local"

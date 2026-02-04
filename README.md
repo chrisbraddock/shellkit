@@ -161,6 +161,19 @@ Edit files in `dot_zsh/aliases/`:
 
 After editing, run `chezmoi apply` to update your live config.
 
+### Machine-Specific Config
+
+For customizations that shouldn't sync across machines, create `~/.zshrc.local`:
+
+```bash
+# ~/.zshrc.local - not managed by chezmoi
+export MY_LOCAL_VAR="value"
+alias myalias="command"
+source ~/work-specific-tools.sh
+```
+
+This file is sourced at the end of `.zshrc` and won't cause conflicts during `shellkit update`.
+
 ### Add/Remove Plugins
 
 Edit `dot_zsh_plugins.txt`:
