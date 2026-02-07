@@ -6,9 +6,9 @@ local cmd="${1:-interactive}"
 shift 2>/dev/null || true
 
 # ── Colors ───────────────────────────────────────────────────────────────────
-local bold='\033[1m' dim='\033[2m'
-local green='\033[32m' yellow='\033[33m' red='\033[31m' cyan='\033[36m'
-local reset='\033[0m'
+local bold=$'\033[1m' dim=$'\033[2m'
+local green=$'\033[32m' yellow=$'\033[33m' red=$'\033[31m' cyan=$'\033[36m'
+local reset=$'\033[0m'
 
 # ── Formatting helpers ───────────────────────────────────────────────────────
 
@@ -308,34 +308,57 @@ _shellkit_packages() {
     [[ ! -f "$pkg_file" ]] && { echo "${red}  Package file not found${reset}"; return 1; }
 
     if _shellkit_has_fzf; then
-        local current_tier=""
-        local pkg_lines=()
-        while IFS= read -r line; do
-            [[ -z "$line" || "$line" =~ ^[[:space:]]*# ]] && continue
-            if [[ "$line" =~ ^[[:space:]]{2}([a-z_]+):$ ]]; then
-                current_tier="${match[1]}"
-            elif [[ "$line" =~ ^[[:space:]]+-[[:space:]]+([^#]+) ]]; then
-                local pkg="${match[1]%% }"
-                local bin="$(_shellkit_pkg_cmd "$pkg")"
-                local installed=false
-                command -v "$(_shellkit_pkg_cmd "$pkg")" &>/dev/null && installed=true
-                local comment=""
-                [[ "$line" =~ '#'[[:space:]]*(.+)$ ]] && comment="${match[1]}"
-                local entry
-                if $installed; then
-                    entry="$(printf "${green}OK${reset}  ${cyan}%-10s${reset}  %-16s" "$current_tier" "$pkg")"
-                else
-                    entry="$(printf "${dim}--${reset}  ${cyan}%-10s${reset}  %-16s" "$current_tier" "$pkg")"
+        while true; do
+            local current_tier="" pkg_lines=()
+            while IFS= read -r line; do
+                [[ -z "$line" || "$line" =~ ^[[:space:]]*# ]] && continue
+                if [[ "$line" =~ ^[[:space:]]{2}([a-z_]+):$ ]]; then
+                    current_tier="${match[1]}"
+                elif [[ "$line" =~ ^[[:space:]]+-[[:space:]]+([^#]+) ]]; then
+                    local pkg="${match[1]%% }"
+                    local bin="$(_shellkit_pkg_cmd "$pkg")"
+                    local comment=""
+                    [[ "$line" =~ '#'[[:space:]]*(.+)$ ]] && comment="${match[1]}"
+                    if command -v "$bin" &>/dev/null; then
+                        pkg_lines+=("${green}OK${reset}  ${cyan}${current_tier}${reset}  ${pkg}  ${dim}${comment}${reset}")
+                    else
+                        pkg_lines+=("${red}--${reset}  ${cyan}${current_tier}${reset}  ${pkg}  ${dim}${comment}${reset}")
+                    fi
                 fi
-                [[ -n "$comment" ]] && entry+="  ${dim}${comment}${reset}"
-                pkg_lines+=("$entry")
+            done < "$pkg_file"
+            local choice
+            choice=$(printf '%s\n' "${pkg_lines[@]}" | \
+                fzf --ansi --height=80% --layout=reverse --bind=right:accept,left:abort --border --border-label=' packages ' \
+                    --prompt='package> ' \
+                    --header=$'← back  → install missing  esc quit' \
+                    --no-sort)
+            [[ -z "$choice" ]] && return 0
+            # Extract package name (3rd field after stripping ANSI)
+            local selected_pkg="$(echo "$choice" | sed 's/\x1b\[[0-9;]*m//g' | awk '{print $3}')"
+            local selected_bin="$(_shellkit_pkg_cmd "$selected_pkg")"
+            if command -v "$selected_bin" &>/dev/null; then
+                echo "${green}  $selected_pkg is already installed${reset} ($(command -v "$selected_bin"))"
+                sleep 1
+            else
+                echo ""
+                echo "${bold}  Install $selected_pkg?${reset}"
+                if [[ "$OS_TYPE" == "macos" ]]; then
+                    echo "  ${dim}brew install $selected_pkg${reset}"
+                else
+                    echo "  ${dim}sudo apt install $selected_pkg${reset}"
+                fi
+                printf "  [y/N] "
+                read -r confirm
+                if [[ "$confirm" =~ ^[yY]$ ]]; then
+                    echo ""
+                    if [[ "$OS_TYPE" == "macos" ]]; then
+                        brew install "$selected_pkg"
+                    else
+                        sudo apt install -y "$selected_pkg"
+                    fi
+                fi
             fi
-        done < "$pkg_file"
-        printf '%s\n' "${pkg_lines[@]}" | \
-            fzf --ansi --height=80% --layout=reverse --bind=right:accept,left:abort --border --border-label=' packages ' \
-                --prompt='package> ' \
-                --header=$'Filter packages, Esc to quit' \
-                --no-sort
+        done
     else
         echo ""
         echo "${bold}  Package tiers${reset}"
