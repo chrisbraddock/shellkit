@@ -4,11 +4,79 @@
 
 local cmd="${1:-help}"
 
+# Colors
+local bold='\033[1m' dim='\033[2m' green='\033[32m' yellow='\033[33m' red='\033[31m' reset='\033[0m'
+
+# ── Helper: protect .zshrc local changes before apply ──────────────────────
+_shellkit_protect_zshrc() {
+    local zshrc="${ZDOTDIR:-$HOME}/.zshrc"
+    local zshrc_local="${ZDOTDIR:-$HOME}/.zshrc.local"
+    local source_tmpl="$(chezmoi source-path)/dot_zshrc.tmpl"
+
+    # Skip if no .zshrc or no template
+    [[ -f "$zshrc" ]] || return 0
+    [[ -f "$source_tmpl" ]] || return 0
+
+    # Render what chezmoi would write
+    local target
+    target="$(chezmoi execute-template -f "$source_tmpl" 2>/dev/null)" || return 0
+
+    # Find lines in current .zshrc that don't exist in chezmoi's version
+    local additions
+    additions="$(grep -Fxvf <(printf '%s\n' "$target") "$zshrc" | grep -v '^[[:space:]]*$' | grep -v '\.zshrc\.local')"
+    [[ -z "$additions" ]] && return 0
+
+    echo ""
+    echo "${yellow}==> ~/.zshrc has local additions that will be overwritten:${reset}"
+    echo ""
+    printf '%s\n' "$additions" | while IFS= read -r line; do
+        echo "    ${green}+${reset} $line"
+    done
+    echo ""
+
+    while true; do
+        echo "${bold}    [m]${reset} Move to ~/.zshrc.local    ${bold}[d]${reset} Show full diff    ${bold}[o]${reset} Overwrite    ${bold}[q]${reset} Quit"
+        printf "    > "
+        read -r choice
+
+        case "$choice" in
+            m|M)
+                echo "" >> "$zshrc_local"
+                echo "# Migrated from .zshrc on $(date +%Y-%m-%d)" >> "$zshrc_local"
+                printf '%s\n' "$additions" >> "$zshrc_local"
+                echo ""
+                echo "${green}==> Moved to ~/.zshrc.local${reset}"
+                return 0
+                ;;
+            d|D)
+                echo ""
+                diff -u "$zshrc" <(printf '%s\n' "$target") || true
+                echo ""
+                ;;
+            o|O)
+                return 0
+                ;;
+            q|Q)
+                return 1
+                ;;
+            *)
+                echo "    ${red}Invalid choice${reset}"
+                ;;
+        esac
+    done
+}
+
 case "$cmd" in
     update)
         echo "==> Updating shellkit..."
-        chezmoi update && chezmoi apply
+        chezmoi update --apply=false || { echo "${red}==> Pull failed${reset}"; return 1; }
+        _shellkit_protect_zshrc || { echo "==> Aborted."; return 0; }
+        chezmoi apply
         echo "==> Done. Restart your shell or run 'reload' to apply changes."
+        ;;
+    apply)
+        _shellkit_protect_zshrc || { echo "==> Aborted."; return 0; }
+        chezmoi apply
         ;;
     edit)
         chezmoi edit --apply
@@ -23,16 +91,17 @@ case "$cmd" in
         cd "$(chezmoi source-path)"
         ;;
     help|--help|-h|*)
-        local bold='\033[1m' dim='\033[2m' cyan='\033[36m' green='\033[32m' yellow='\033[33m' reset='\033[0m'
         echo ""
         echo "${bold}  🐚 shellkit${reset} ${dim}— manage your shell configuration${reset}"
         echo ""
         echo "${yellow}  Getting the latest:${reset}"
         echo "    ${green}shellkit update${reset}    Pull latest changes and apply"
+        echo "    ${dim}    Local .zshrc additions can be moved to .zshrc.local${reset}"
         echo ""
         echo "${yellow}  Day-to-day:${reset}"
         echo "    ${green}shellkit diff${reset}      Preview pending changes"
         echo "    ${green}shellkit status${reset}    Show changed files"
+        echo "    ${green}shellkit apply${reset}     Apply changes (with .zshrc protection)"
         echo "    ${green}shellkit edit${reset}      Edit config files (applies on save)"
         echo "    ${green}shellkit cd${reset}        Jump to shellkit source directory"
         echo ""
