@@ -103,23 +103,25 @@ _shellkit_interactive() {
     # Preview uses a lightweight non-interactive shell (skips prompt, plugins, gitstatus)
     local preview="zsh -c 'source ~/.zsh/os-detect.zsh 2>/dev/null; fpath=(~/.zsh/functions \$fpath); autoload -Uz shellkit; shellkit \"\$1\"' -- {1} 2>/dev/null"
 
-    local choice
-    choice=$(printf '%s\n' \
-        "aliases       Browse and search aliases" \
-        "functions     List shell functions" \
-        "packages      Show installed packages" \
-        "info          System info and tool versions" \
-        "config        Show current settings and toggles" \
-        "doctor        Health check" \
-        | fzf --ansi --height=80% --layout=reverse --bind=right:accept,left:abort --border --border-label=" shellkit v$(_shellkit_version) " \
-              --prompt='shellkit> ' \
-              --header=$'Navigate with arrows, Enter to select, Esc to quit' \
-              --preview="$preview" \
-              --preview-window=right:60%:wrap)
+    while true; do
+        local choice
+        choice=$(printf '%s\n' \
+            "aliases       Browse and search aliases" \
+            "functions     List shell functions" \
+            "packages      Show installed packages" \
+            "info          System info and tool versions" \
+            "config        Show current settings and toggles" \
+            "doctor        Health check" \
+            | fzf --ansi --height=80% --layout=reverse --bind=right:accept,left:abort --border --border-label=" shellkit v$(_shellkit_version) " \
+                  --prompt='shellkit> ' \
+                  --header=$'← back  → enter  esc quit' \
+                  --preview="$preview" \
+                  --preview-window=right:60%:wrap)
 
-    [[ -z "$choice" ]] && return 0
-    local selected="${choice%% *}"
-    shellkit "$selected"
+        [[ -z "$choice" ]] && return 0
+        local selected="${choice%% *}"
+        shellkit "$selected"
+    done
 }
 
 _shellkit_reload_shell() {
@@ -159,19 +161,21 @@ _shellkit_aliases() {
 
     if [[ -z "$subcmd" ]]; then
         if _shellkit_has_fzf; then
-            local choice
             local preview="zsh -c 'source ~/.zsh/os-detect.zsh 2>/dev/null; fpath=(~/.zsh/functions \$fpath); autoload -Uz shellkit; shellkit aliases \"\$1\"' -- {1} 2>/dev/null"
-            choice=$(for file in "$aliases_dir"/*.zsh(N); do
-                local name="${file:t:r}"
-                local count=$(grep -c '^[[:space:]]*alias ' "$file" 2>/dev/null || echo 0)
-                printf "%-14s  %d aliases\n" "$name" "$count"
-            done | fzf --ansi --height=80% --layout=reverse --bind=right:accept,left:abort --border --border-label=' aliases ' \
-                      --prompt='category> ' \
-                      --header=$'Select a category to browse, Esc to quit' \
-                      --preview="$preview" \
-                      --preview-window=right:60%:wrap)
-            [[ -z "$choice" ]] && return 0
-            _shellkit_aliases "${choice%% *}"
+            while true; do
+                local choice
+                choice=$(for file in "$aliases_dir"/*.zsh(N); do
+                    local name="${file:t:r}"
+                    local count=$(grep -c '^[[:space:]]*alias ' "$file" 2>/dev/null || echo 0)
+                    printf "%-14s  %d aliases\n" "$name" "$count"
+                done | fzf --ansi --height=80% --layout=reverse --bind=right:accept,left:abort --border --border-label=' aliases ' \
+                          --prompt='category> ' \
+                          --header=$'← back  → enter  esc quit' \
+                          --preview="$preview" \
+                          --preview-window=right:60%:wrap)
+                [[ -z "$choice" ]] && return 0
+                _shellkit_aliases "${choice%% *}"
+            done
         else
             echo ""
             echo "${bold}  Alias categories${reset}"
@@ -241,26 +245,28 @@ _shellkit_functions() {
     local funcs_dir="${ZDOTDIR:-$HOME}/.zsh/functions"
 
     if _shellkit_has_fzf; then
-        local choice
-        choice=$(for func_file in "$funcs_dir"/*(N); do
-            local name="${func_file:t}"
-            [[ "$name" == _* ]] && continue
-            local desc=""
-            desc=$(sed -n '1{s/^#!.*//;s/^# *//p;}' "$func_file")
-            [[ -z "$desc" ]] && desc=$(sed -n '2{s/^# *//p;}' "$func_file")
-            printf "%-26s  %s\n" "$name" "$desc"
-        done | fzf --ansi --height=80% --layout=reverse --bind=right:accept,left:abort --border --border-label=' functions ' \
-                  --prompt='function> ' \
-                  --header=$'Select a function to view source, Esc to quit' \
-                  --preview="bat --style=numbers --color=always --language=zsh $funcs_dir/{1} 2>/dev/null || cat $funcs_dir/{1}" \
-                  --preview-window=right:60%:wrap)
-        [[ -z "$choice" ]] && return 0
-        local selected="${choice%% *}"
-        echo ""
-        echo "${bold}  $selected${reset}"
-        echo ""
-        bat --style=numbers --color=always --language=zsh "$funcs_dir/$selected" 2>/dev/null || cat "$funcs_dir/$selected"
-        echo ""
+        while true; do
+            local choice
+            choice=$(for func_file in "$funcs_dir"/*(N); do
+                local name="${func_file:t}"
+                [[ "$name" == _* ]] && continue
+                local desc=""
+                desc=$(sed -n '1{s/^#!.*//;s/^# *//p;}' "$func_file")
+                [[ -z "$desc" ]] && desc=$(sed -n '2{s/^# *//p;}' "$func_file")
+                printf "%-26s  %s\n" "$name" "$desc"
+            done | fzf --ansi --height=80% --layout=reverse --bind=right:accept,left:abort --border --border-label=' functions ' \
+                      --prompt='function> ' \
+                      --header=$'← back  → enter  esc quit' \
+                      --preview="bat --style=numbers --color=always --language=zsh $funcs_dir/{1} 2>/dev/null || cat $funcs_dir/{1}" \
+                      --preview-window=right:60%:wrap)
+            [[ -z "$choice" ]] && return 0
+            local selected="${choice%% *}"
+            echo ""
+            echo "${bold}  $selected${reset}"
+            echo ""
+            bat --style=numbers --color=always --language=zsh "$funcs_dir/$selected" 2>/dev/null || cat "$funcs_dir/$selected"
+            echo ""
+        done
     else
         echo ""
         echo "${bold}  Shell functions${reset}"
