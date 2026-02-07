@@ -112,9 +112,9 @@ _shellkit_interactive() {
             "info          System info and tool versions" \
             "config        Show current settings and toggles" \
             "doctor        Health check" \
-            | fzf --ansi --height=80% --layout=reverse --bind=right:accept,left:abort --border --border-label=" shellkit v$(_shellkit_version) " \
+            | fzf --ansi --height=80% --layout=reverse --bind=right:accept --border --border-label=" shellkit v$(_shellkit_version) " \
                   --prompt='shellkit> ' \
-                  --header=$'← back  → enter  esc quit' \
+                  --header=$'→ enter  esc quit' \
                   --preview="$preview" \
                   --preview-window=right:60%:wrap)
 
