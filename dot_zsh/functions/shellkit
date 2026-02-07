@@ -2,7 +2,7 @@
 # shellkit - manage shellkit configuration
 # Usage: shellkit <command>
 
-local cmd="${1:-help}"
+local cmd="${1:-interactive}"
 shift 2>/dev/null || true
 
 # ── Colors ───────────────────────────────────────────────────────────────────
@@ -39,7 +39,12 @@ _shellkit_pkg_cmd() {
     esac
 }
 
-# ── .zshrc protection (unchanged) ───────────────────────────────────────────
+_shellkit_has_fzf() {
+    # Requires: fzf installed, real terminal (not a pipe), not inside fzf preview
+    command -v fzf &>/dev/null && [[ -t 1 ]] && [[ -z "$FZF_PREVIEW_COLUMNS" ]]
+}
+
+# ── .zshrc protection ───────────────────────────────────────────────────────
 
 _shellkit_protect_zshrc() {
     local zshrc="${ZDOTDIR:-$HOME}/.zshrc"
@@ -89,6 +94,31 @@ _shellkit_protect_zshrc() {
 
 # ── Subcommands ──────────────────────────────────────────────────────────────
 
+_shellkit_interactive() {
+    if ! _shellkit_has_fzf; then
+        _shellkit_help
+        return
+    fi
+
+    local choice
+    choice=$(printf '%s\n' \
+        "aliases       Browse and search aliases" \
+        "functions     List shell functions" \
+        "packages      Show installed packages" \
+        "info          System info and tool versions" \
+        "config        Show current settings and toggles" \
+        "doctor        Health check" \
+        | fzf --ansi --height=80% --border --border-label=" shellkit v$(_shellkit_version) " \
+              --prompt='shellkit> ' \
+              --header=$'Navigate with arrows, Enter to select, Esc to quit' \
+              --preview='zsh -ic "shellkit {1}" 2>/dev/null' \
+              --preview-window=right:60%:wrap)
+
+    [[ -z "$choice" ]] && return 0
+    local selected="${choice%% *}"
+    shellkit "$selected"
+}
+
 _shellkit_update() {
     echo "${bold}==> Updating shellkit...${reset}"
     chezmoi update --apply=false || { echo "${red}==> Pull failed${reset}"; return 1; }
@@ -107,20 +137,35 @@ _shellkit_aliases() {
     local subcmd="${1:-}"
 
     if [[ -z "$subcmd" ]]; then
-        echo ""
-        echo "${bold}  Alias categories${reset}"
-        echo ""
-        for file in "$aliases_dir"/*.zsh(N); do
-            local name="${file:t:r}"
-            local count=$(grep -c '^[[:space:]]*alias ' "$file" 2>/dev/null || echo 0)
-            local desc=$(sed -n '4{s/^# *//p;}' "$file")
-            printf "    ${green}%-12s${reset} ${dim}%d aliases" "$name" "$count"
-            [[ -n "$desc" ]] && printf "  — %s" "$desc"
-            printf "${reset}\n"
-        done
-        echo ""
-        echo "  ${dim}Usage: shellkit aliases <category>  |  shellkit aliases search <term>${reset}"
-        echo ""
+        if _shellkit_has_fzf; then
+            local choice
+            choice=$(for file in "$aliases_dir"/*.zsh(N); do
+                local name="${file:t:r}"
+                local count=$(grep -c '^[[:space:]]*alias ' "$file" 2>/dev/null || echo 0)
+                printf "%-14s  %d aliases\n" "$name" "$count"
+            done | fzf --ansi --height=80% --border --border-label=' aliases ' \
+                      --prompt='category> ' \
+                      --header=$'Select a category to browse, Esc to quit' \
+                      --preview='zsh -ic "shellkit aliases {1}" 2>/dev/null' \
+                      --preview-window=right:60%:wrap)
+            [[ -z "$choice" ]] && return 0
+            _shellkit_aliases "${choice%% *}"
+        else
+            echo ""
+            echo "${bold}  Alias categories${reset}"
+            echo ""
+            for file in "$aliases_dir"/*.zsh(N); do
+                local name="${file:t:r}"
+                local count=$(grep -c '^[[:space:]]*alias ' "$file" 2>/dev/null || echo 0)
+                local desc=$(sed -n '4{s/^# *//p;}' "$file")
+                printf "    ${green}%-12s${reset} ${dim}%d aliases" "$name" "$count"
+                [[ -n "$desc" ]] && printf "  — %s" "$desc"
+                printf "${reset}\n"
+            done
+            echo ""
+            echo "  ${dim}Usage: shellkit aliases <category>  |  shellkit aliases search <term>${reset}"
+            echo ""
+        fi
         return 0
     fi
 
@@ -172,18 +217,42 @@ _shellkit_aliases() {
 
 _shellkit_functions() {
     local funcs_dir="${ZDOTDIR:-$HOME}/.zsh/functions"
-    echo ""
-    echo "${bold}  Shell functions${reset}"
-    echo ""
-    for func_file in "$funcs_dir"/*(N); do
-        local name="${func_file:t}"
-        [[ "$name" == _* ]] && continue
-        local desc=""
-        desc=$(sed -n '1{s/^#!.*//;s/^# *//p;}' "$func_file")
-        [[ -z "$desc" ]] && desc=$(sed -n '2{s/^# *//p;}' "$func_file")
-        printf "    ${green}%-26s${reset} ${dim}%s${reset}\n" "$name" "$desc"
-    done
-    echo ""
+
+    if _shellkit_has_fzf; then
+        local choice
+        choice=$(for func_file in "$funcs_dir"/*(N); do
+            local name="${func_file:t}"
+            [[ "$name" == _* ]] && continue
+            local desc=""
+            desc=$(sed -n '1{s/^#!.*//;s/^# *//p;}' "$func_file")
+            [[ -z "$desc" ]] && desc=$(sed -n '2{s/^# *//p;}' "$func_file")
+            printf "%-26s  %s\n" "$name" "$desc"
+        done | fzf --ansi --height=80% --border --border-label=' functions ' \
+                  --prompt='function> ' \
+                  --header=$'Select a function to view source, Esc to quit' \
+                  --preview="bat --style=numbers --color=always --language=zsh $funcs_dir/{1} 2>/dev/null || cat $funcs_dir/{1}" \
+                  --preview-window=right:60%:wrap)
+        [[ -z "$choice" ]] && return 0
+        local selected="${choice%% *}"
+        echo ""
+        echo "${bold}  $selected${reset}"
+        echo ""
+        bat --style=numbers --color=always --language=zsh "$funcs_dir/$selected" 2>/dev/null || cat "$funcs_dir/$selected"
+        echo ""
+    else
+        echo ""
+        echo "${bold}  Shell functions${reset}"
+        echo ""
+        for func_file in "$funcs_dir"/*(N); do
+            local name="${func_file:t}"
+            [[ "$name" == _* ]] && continue
+            local desc=""
+            desc=$(sed -n '1{s/^#!.*//;s/^# *//p;}' "$func_file")
+            [[ -z "$desc" ]] && desc=$(sed -n '2{s/^# *//p;}' "$func_file")
+            printf "    ${green}%-26s${reset} ${dim}%s${reset}\n" "$name" "$desc"
+        done
+        echo ""
+    fi
 }
 
 _shellkit_packages() {
@@ -191,31 +260,64 @@ _shellkit_packages() {
     local pkg_file="$src/.chezmoidata/packages.yaml"
     [[ ! -f "$pkg_file" ]] && { echo "${red}  Package file not found${reset}"; return 1; }
 
-    echo ""
-    echo "${bold}  Package tiers${reset}"
-    echo ""
+    if _shellkit_has_fzf; then
+        local current_tier=""
+        local pkg_lines=()
+        while IFS= read -r line; do
+            [[ -z "$line" || "$line" =~ ^[[:space:]]*# ]] && continue
+            if [[ "$line" =~ ^[[:space:]]{2}([a-z_]+):$ ]]; then
+                current_tier="${match[1]}"
+            elif [[ "$line" =~ ^[[:space:]]+-[[:space:]]+([^#]+) ]]; then
+                local pkg="${match[1]%% }"
+                local bin="$(_shellkit_pkg_cmd "$pkg")"
+                local installed=false
+                command -v "$(_shellkit_pkg_cmd "$pkg")" &>/dev/null && installed=true
+                local comment=""
+                [[ "$line" =~ '#'[[:space:]]*(.+)$ ]] && comment="${match[1]}"
+                local entry
+                if $installed; then
+                    entry="$(printf "${green}OK${reset}  ${cyan}%-10s${reset}  %-16s" "$current_tier" "$pkg")"
+                else
+                    entry="$(printf "${dim}--${reset}  ${cyan}%-10s${reset}  %-16s" "$current_tier" "$pkg")"
+                fi
+                [[ -n "$comment" ]] && entry+="  ${dim}${comment}${reset}"
+                pkg_lines+=("$entry")
+            fi
+        done < "$pkg_file"
+        printf '%s\n' "${pkg_lines[@]}" | \
+            fzf --ansi --height=80% --border --border-label=' packages ' \
+                --prompt='package> ' \
+                --header=$'Filter packages, Esc to quit' \
+                --no-sort
+    else
+        echo ""
+        echo "${bold}  Package tiers${reset}"
+        echo ""
 
-    local current_tier=""
-    while IFS= read -r line; do
-        [[ -z "$line" || "$line" =~ ^[[:space:]]*# ]] && continue
-        # Tier header (2-space indent key:)
-        if [[ "$line" =~ ^[[:space:]]{2}([a-z_]+):$ ]]; then
-            current_tier="${match[1]}"
-            echo "  ${yellow}$current_tier${reset}"
-        # Package item
-        elif [[ "$line" =~ ^[[:space:]]+-[[:space:]]+([^#]+) ]]; then
-            local pkg="${match[1]%% }"
-            local comment=""
-            [[ "$line" =~ '#'[[:space:]]*(.+)$ ]] && comment="${match[1]}"
-            local bin="$(_shellkit_pkg_cmd "$pkg")"
-            local status="${dim}--${reset}"
-            command -v "$bin" &>/dev/null && status="${green}OK${reset}"
-            printf "    %s  %-16s" "$status" "$pkg"
-            [[ -n "$comment" ]] && printf " ${dim}%s${reset}" "$comment"
-            printf "\n"
-        fi
-    done < "$pkg_file"
-    echo ""
+        local current_tier=""
+        while IFS= read -r line; do
+            [[ -z "$line" || "$line" =~ ^[[:space:]]*# ]] && continue
+            # Tier header (2-space indent key:)
+            if [[ "$line" =~ ^[[:space:]]{2}([a-z_]+):$ ]]; then
+                current_tier="${match[1]}"
+                echo "  ${yellow}$current_tier${reset}"
+            # Package item
+            elif [[ "$line" =~ ^[[:space:]]+-[[:space:]]+([^#]+) ]]; then
+                local pkg="${match[1]%% }"
+                local comment=""
+                [[ "$line" =~ '#'[[:space:]]*(.+)$ ]] && comment="${match[1]}"
+                local bin="$(_shellkit_pkg_cmd "$pkg")"
+                if command -v "$bin" &>/dev/null; then
+                    printf "    ${green}OK${reset}  %-16s" "$pkg"
+                else
+                    printf "    ${dim}--${reset}  %-16s" "$pkg"
+                fi
+                [[ -n "$comment" ]] && printf " ${dim}%s${reset}" "$comment"
+                printf "\n"
+            fi
+        done < "$pkg_file"
+        echo ""
+    fi
 }
 
 _shellkit_info() {
@@ -403,6 +505,7 @@ _shellkit_help() {
     _shellkit_row "shellkit info" "System info and tool versions"
     _shellkit_row "shellkit doctor" "Health check"
     echo ""
+    echo "  ${dim}Run ${green}shellkit${reset}${dim} with no args for interactive mode (requires fzf)${reset}"
     echo "  ${dim}See also: ${green}secrets${reset}${dim}, ${green}mon${reset}${dim}, ${green}sudo-biometrics${reset}${dim}, ${green}reload${reset}"
     echo ""
 }
@@ -410,6 +513,7 @@ _shellkit_help() {
 # ── Dispatch ─────────────────────────────────────────────────────────────────
 
 case "$cmd" in
+    interactive)           _shellkit_interactive ;;
     update)                _shellkit_update ;;
     apply)                 _shellkit_apply ;;
     edit)                  chezmoi edit --apply ;;
