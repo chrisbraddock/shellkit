@@ -315,7 +315,7 @@ _shellkit_packages() {
                 if [[ "$line" =~ ^[[:space:]]{2}([a-z_]+):$ ]]; then
                     current_tier="${match[1]}"
                 elif [[ "$line" =~ ^[[:space:]]+-[[:space:]]+([^#]+) ]]; then
-                    local pkg="${match[1]%% }"
+                    local pkg="${match[1]%% *}"
                     local bin="$(_shellkit_pkg_cmd "$pkg")"
                     local comment=""
                     [[ "$line" =~ '#'[[:space:]]*(.+)$ ]] && comment="${match[1]}"
@@ -373,7 +373,7 @@ _shellkit_packages() {
                 echo "  ${yellow}$current_tier${reset}"
             # Package item
             elif [[ "$line" =~ ^[[:space:]]+-[[:space:]]+([^#]+) ]]; then
-                local pkg="${match[1]%% }"
+                local pkg="${match[1]%% *}"
                 local comment=""
                 [[ "$line" =~ '#'[[:space:]]*(.+)$ ]] && comment="${match[1]}"
                 local bin="$(_shellkit_pkg_cmd "$pkg")"
