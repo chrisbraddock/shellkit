@@ -111,7 +111,7 @@ _shellkit_interactive() {
         "info          System info and tool versions" \
         "config        Show current settings and toggles" \
         "doctor        Health check" \
-        | fzf --ansi --height=80% --border --border-label=" shellkit v$(_shellkit_version) " \
+        | fzf --ansi --height=80% --layout=reverse --border --border-label=" shellkit v$(_shellkit_version) " \
               --prompt='shellkit> ' \
               --header=$'Navigate with arrows, Enter to select, Esc to quit' \
               --preview="$preview" \
@@ -147,7 +147,7 @@ _shellkit_aliases() {
                 local name="${file:t:r}"
                 local count=$(grep -c '^[[:space:]]*alias ' "$file" 2>/dev/null || echo 0)
                 printf "%-14s  %d aliases\n" "$name" "$count"
-            done | fzf --ansi --height=80% --border --border-label=' aliases ' \
+            done | fzf --ansi --height=80% --layout=reverse --border --border-label=' aliases ' \
                       --prompt='category> ' \
                       --header=$'Select a category to browse, Esc to quit' \
                       --preview="$preview" \
@@ -231,7 +231,7 @@ _shellkit_functions() {
             desc=$(sed -n '1{s/^#!.*//;s/^# *//p;}' "$func_file")
             [[ -z "$desc" ]] && desc=$(sed -n '2{s/^# *//p;}' "$func_file")
             printf "%-26s  %s\n" "$name" "$desc"
-        done | fzf --ansi --height=80% --border --border-label=' functions ' \
+        done | fzf --ansi --height=80% --layout=reverse --border --border-label=' functions ' \
                   --prompt='function> ' \
                   --header=$'Select a function to view source, Esc to quit' \
                   --preview="bat --style=numbers --color=always --language=zsh $funcs_dir/{1} 2>/dev/null || cat $funcs_dir/{1}" \
@@ -289,7 +289,7 @@ _shellkit_packages() {
             fi
         done < "$pkg_file"
         printf '%s\n' "${pkg_lines[@]}" | \
-            fzf --ansi --height=80% --border --border-label=' packages ' \
+            fzf --ansi --height=80% --layout=reverse --border --border-label=' packages ' \
                 --prompt='package> ' \
                 --header=$'Filter packages, Esc to quit' \
                 --no-sort
