@@ -23,14 +23,18 @@ case "$cmd" in
         cd "$(chezmoi source-path)"
         ;;
     help|--help|-h|*)
-        echo "shellkit - manage your shell configuration"
+        local bold='\033[1m' dim='\033[2m' cyan='\033[36m' green='\033[32m' yellow='\033[33m' reset='\033[0m'
         echo ""
-        echo "Commands:"
-        echo "  update    Pull latest and apply (chezmoi update && apply)"
-        echo "  edit      Edit config files (chezmoi edit --apply)"
-        echo "  diff      Show pending changes (chezmoi diff)"
-        echo "  status    Show changed files (chezmoi status)"
-        echo "  cd        Change to shellkit source directory"
-        echo "  help      Show this help"
+        echo "${bold}  🐚 shellkit${reset} ${dim}— manage your shell configuration${reset}"
+        echo ""
+        echo "${yellow}  Getting the latest:${reset}"
+        echo "    ${green}shellkit update${reset}    Pull latest changes and apply"
+        echo ""
+        echo "${yellow}  Day-to-day:${reset}"
+        echo "    ${green}shellkit diff${reset}      Preview pending changes"
+        echo "    ${green}shellkit status${reset}    Show changed files"
+        echo "    ${green}shellkit edit${reset}      Edit config files (applies on save)"
+        echo "    ${green}shellkit cd${reset}        Jump to shellkit source directory"
+        echo ""
         ;;
 esac
