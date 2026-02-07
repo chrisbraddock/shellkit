@@ -11,3 +11,8 @@
 !.bluera/bluera-base/TODO.txt
 !.bluera/bluera-knowledge/
 !.bluera/bluera-knowledge/stores.config.json
+
+.bluera/bluera-base/*
+.bluera/bluera-knowledge/*
+# Claude Code local files (not committed)
+*.local.md
