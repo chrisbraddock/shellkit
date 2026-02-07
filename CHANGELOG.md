@@ -2,6 +2,20 @@
 
 All notable changes to shellkit will be documented in this file.
 
+## [1.5.0] - 2026-02-07
+
+
+### Bug Fixes
+
+- Auto-reload functions and aliases after update/apply
+- Add navigation loops to fzf TUI menus
+- Make left arrow no-op on main TUI menu
+- Render colors correctly in all fzf screens
+
+
+### Features
+
+- Add fzf drill-down for alias categories
 ## [1.4.1] - 2026-02-07
 
 
