@@ -21,6 +21,13 @@ require("lazy").setup({
             require("plugin.nvim-tree")
         end,
     },
+    {
+        "nvim-treesitter/nvim-treesitter",
+        build = ":TSUpdate",
+        config = function()
+            require("plugin.treesitter")
+        end,
+    },
 }, {
     install = {
         colorscheme = { "default" },
