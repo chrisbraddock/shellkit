@@ -31,11 +31,13 @@ _shellkit_chezmoi_val() {
 
 _shellkit_pkg_cmd() {
     case "$1" in
-        neovim)   echo "nvim" ;;
-        ripgrep)  echo "rg" ;;
-        fd)       [[ "$OS_TYPE" =~ ^(linux|ubuntu)$ ]] && echo "fdfind" || echo "fd" ;;
-        bat)      [[ "$OS_TYPE" =~ ^(linux|ubuntu)$ ]] && echo "batcat" || echo "bat" ;;
-        *)        echo "$1" ;;
+        neovim)         echo "nvim" ;;
+        ripgrep)        echo "rg" ;;
+        git-delta)      echo "delta" ;;
+        1password-cli)  echo "op" ;;
+        fd)             [[ "$OS_TYPE" =~ ^(linux|ubuntu)$ ]] && echo "fdfind" || echo "fd" ;;
+        bat)            [[ "$OS_TYPE" =~ ^(linux|ubuntu)$ ]] && echo "batcat" || echo "bat" ;;
+        *)              echo "$1" ;;
     esac
 }
 
