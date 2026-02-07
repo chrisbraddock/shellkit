@@ -122,17 +122,35 @@ _shellkit_interactive() {
     shellkit "$selected"
 }
 
+_shellkit_reload_shell() {
+    local funcs_dir="${ZDOTDIR:-$HOME}/.zsh/functions"
+    # Clear and re-autoload all functions so updated versions take effect
+    if [[ -d "$funcs_dir" ]]; then
+        for f in "$funcs_dir"/*(.N:t); do
+            unfunction "$f" 2>/dev/null
+            autoload -Uz "$f"
+        done
+    fi
+    # Re-source aliases
+    for f in "${ZDOTDIR:-$HOME}"/.zsh/aliases/*.zsh(N); do
+        source "$f"
+    done
+}
+
 _shellkit_update() {
     echo "${bold}==> Updating shellkit...${reset}"
     chezmoi update --apply=false || { echo "${red}==> Pull failed${reset}"; return 1; }
     _shellkit_protect_zshrc || { echo "==> Aborted."; return 0; }
     chezmoi apply
-    echo "${green}==> Done.${reset} Restart your shell or run ${bold}reload${reset} to apply changes."
+    _shellkit_reload_shell
+    echo "${green}==> Done.${reset} Changes are live."
 }
 
 _shellkit_apply() {
     _shellkit_protect_zshrc || { echo "==> Aborted."; return 0; }
     chezmoi apply
+    _shellkit_reload_shell
+    echo "${green}==> Done.${reset} Changes are live."
 }
 
 _shellkit_aliases() {
