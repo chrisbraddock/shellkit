@@ -2,6 +2,13 @@
 
 All notable changes to shellkit will be documented in this file.
 
+## [1.4.1] - 2026-02-07
+
+
+### Bug Fixes
+
+- Use top-down layout for fzf TUI menus
+- Bind arrow keys for TUI navigation
 ## [1.4.0] - 2026-02-07
 
 
