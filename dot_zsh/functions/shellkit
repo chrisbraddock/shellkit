@@ -3,25 +3,55 @@
 # Usage: shellkit <command>
 
 local cmd="${1:-help}"
+shift 2>/dev/null || true
 
-# Colors
-local bold='\033[1m' dim='\033[2m' green='\033[32m' yellow='\033[33m' red='\033[31m' reset='\033[0m'
+# ── Colors ───────────────────────────────────────────────────────────────────
+local bold='\033[1m' dim='\033[2m'
+local green='\033[32m' yellow='\033[33m' red='\033[31m' cyan='\033[36m'
+local reset='\033[0m'
 
-# ── Helper: protect .zshrc local changes before apply ──────────────────────
+# ── Formatting helpers ───────────────────────────────────────────────────────
+
+_shellkit_row() {
+    printf "    ${green}%-34s${reset} ${dim}%s${reset}\n" "$1" "$2"
+}
+
+_shellkit_source_dir() {
+    chezmoi source-path 2>/dev/null
+}
+
+_shellkit_version() {
+    local src="$(_shellkit_source_dir)"
+    [[ -f "$src/VERSION" ]] && cat "$src/VERSION" || echo "unknown"
+}
+
+_shellkit_chezmoi_val() {
+    chezmoi execute-template "{{ $1 }}" 2>/dev/null
+}
+
+_shellkit_pkg_cmd() {
+    case "$1" in
+        neovim)   echo "nvim" ;;
+        ripgrep)  echo "rg" ;;
+        fd)       [[ "$OS_TYPE" =~ ^(linux|ubuntu)$ ]] && echo "fdfind" || echo "fd" ;;
+        bat)      [[ "$OS_TYPE" =~ ^(linux|ubuntu)$ ]] && echo "batcat" || echo "bat" ;;
+        *)        echo "$1" ;;
+    esac
+}
+
+# ── .zshrc protection (unchanged) ───────────────────────────────────────────
+
 _shellkit_protect_zshrc() {
     local zshrc="${ZDOTDIR:-$HOME}/.zshrc"
     local zshrc_local="${ZDOTDIR:-$HOME}/.zshrc.local"
-    local source_tmpl="$(chezmoi source-path)/dot_zshrc.tmpl"
+    local source_tmpl="$(_shellkit_source_dir)/dot_zshrc.tmpl"
 
-    # Skip if no .zshrc or no template
     [[ -f "$zshrc" ]] || return 0
     [[ -f "$source_tmpl" ]] || return 0
 
-    # Render what chezmoi would write
     local target
     target="$(chezmoi execute-template -f "$source_tmpl" 2>/dev/null)" || return 0
 
-    # Find lines in current .zshrc that don't exist in chezmoi's version
     local additions
     additions="$(grep -Fxvf <(printf '%s\n' "$target") "$zshrc" | grep -v '^[[:space:]]*$' | grep -v '\.zshrc\.local')"
     [[ -z "$additions" ]] && return 0
@@ -38,7 +68,6 @@ _shellkit_protect_zshrc() {
         echo "${bold}    [m]${reset} Move to ~/.zshrc.local    ${bold}[d]${reset} Show full diff    ${bold}[o]${reset} Overwrite    ${bold}[q]${reset} Quit"
         printf "    > "
         read -r choice
-
         case "$choice" in
             m|M)
                 echo "" >> "$zshrc_local"
@@ -46,64 +75,357 @@ _shellkit_protect_zshrc() {
                 printf '%s\n' "$additions" >> "$zshrc_local"
                 echo ""
                 echo "${green}==> Moved to ~/.zshrc.local${reset}"
-                return 0
-                ;;
+                return 0 ;;
             d|D)
                 echo ""
                 diff -u "$zshrc" <(printf '%s\n' "$target") || true
-                echo ""
-                ;;
-            o|O)
-                return 0
-                ;;
-            q|Q)
-                return 1
-                ;;
-            *)
-                echo "    ${red}Invalid choice${reset}"
-                ;;
+                echo "" ;;
+            o|O) return 0 ;;
+            q|Q) return 1 ;;
+            *)   echo "    ${red}Invalid choice${reset}" ;;
         esac
     done
 }
 
+# ── Subcommands ──────────────────────────────────────────────────────────────
+
+_shellkit_update() {
+    echo "${bold}==> Updating shellkit...${reset}"
+    chezmoi update --apply=false || { echo "${red}==> Pull failed${reset}"; return 1; }
+    _shellkit_protect_zshrc || { echo "==> Aborted."; return 0; }
+    chezmoi apply
+    echo "${green}==> Done.${reset} Restart your shell or run ${bold}reload${reset} to apply changes."
+}
+
+_shellkit_apply() {
+    _shellkit_protect_zshrc || { echo "==> Aborted."; return 0; }
+    chezmoi apply
+}
+
+_shellkit_aliases() {
+    local aliases_dir="${ZDOTDIR:-$HOME}/.zsh/aliases"
+    local subcmd="${1:-}"
+
+    if [[ -z "$subcmd" ]]; then
+        echo ""
+        echo "${bold}  Alias categories${reset}"
+        echo ""
+        for file in "$aliases_dir"/*.zsh(N); do
+            local name="${file:t:r}"
+            local count=$(grep -c '^[[:space:]]*alias ' "$file" 2>/dev/null || echo 0)
+            local desc=$(sed -n '4{s/^# *//p;}' "$file")
+            printf "    ${green}%-12s${reset} ${dim}%d aliases" "$name" "$count"
+            [[ -n "$desc" ]] && printf "  — %s" "$desc"
+            printf "${reset}\n"
+        done
+        echo ""
+        echo "  ${dim}Usage: shellkit aliases <category>  |  shellkit aliases search <term>${reset}"
+        echo ""
+        return 0
+    fi
+
+    if [[ "$subcmd" == "search" ]]; then
+        local term="${1:+${2:-}}"
+        [[ -z "$2" ]] && { echo "${red}  Usage: shellkit aliases search <term>${reset}"; return 1; }
+        echo ""
+        echo "${bold}  Searching for '${2}'${reset}"
+        echo ""
+        for file in "$aliases_dir"/*.zsh(N); do
+            local name="${file:t:r}"
+            local matches=$(grep -i "$2" "$file" 2>/dev/null | grep -E '^\s*alias ' || true)
+            if [[ -n "$matches" ]]; then
+                echo "  ${yellow}[$name]${reset}"
+                printf '%s\n' "$matches" | while IFS= read -r line; do
+                    line="${line#"${line%%[! ]*}"}"  # trim leading whitespace
+                    if [[ "$line" =~ ^alias[[:space:]]+([^=]+)=(.+)$ ]]; then
+                        printf "    ${green}%-16s${reset} ${dim}%s${reset}\n" "${match[1]}" "${match[2]}"
+                    fi
+                done
+                echo ""
+            fi
+        done
+        return 0
+    fi
+
+    # Show specific category
+    local file="$aliases_dir/${subcmd}.zsh"
+    [[ ! -f "$file" ]] && { echo "${red}  Unknown category: $subcmd${reset}"; echo "  ${dim}Available: $(print -l "$aliases_dir"/*.zsh(N:t:r) | tr '\n' ' ')${reset}"; return 1; }
+
+    echo ""
+    echo "${bold}  $subcmd aliases${reset}"
+    echo ""
+    while IFS= read -r line; do
+        if [[ "$line" =~ ^#\ -+$ ]]; then
+            continue
+        elif [[ "$line" =~ ^#\ =+$ ]]; then
+            continue
+        elif [[ "$line" =~ ^#[[:space:]]+(.+)$ ]] && [[ ! "${match[1]}" =~ ^[-=]+ ]]; then
+            local header="${match[1]}"
+            [[ "$header" == *"Aliases"* || "$header" == *"Consolidated"* ]] && continue
+            echo "  ${yellow}$header${reset}"
+        elif [[ "$line" =~ ^[[:space:]]*alias[[:space:]]+([^=]+)=(.+)$ ]]; then
+            printf "    ${green}%-16s${reset} ${dim}%s${reset}\n" "${match[1]}" "${match[2]}"
+        fi
+    done < "$file"
+    echo ""
+}
+
+_shellkit_functions() {
+    local funcs_dir="${ZDOTDIR:-$HOME}/.zsh/functions"
+    echo ""
+    echo "${bold}  Shell functions${reset}"
+    echo ""
+    for func_file in "$funcs_dir"/*(N); do
+        local name="${func_file:t}"
+        [[ "$name" == _* ]] && continue
+        local desc=""
+        desc=$(sed -n '1{s/^#!.*//;s/^# *//p;}' "$func_file")
+        [[ -z "$desc" ]] && desc=$(sed -n '2{s/^# *//p;}' "$func_file")
+        printf "    ${green}%-26s${reset} ${dim}%s${reset}\n" "$name" "$desc"
+    done
+    echo ""
+}
+
+_shellkit_packages() {
+    local src="$(_shellkit_source_dir)"
+    local pkg_file="$src/.chezmoidata/packages.yaml"
+    [[ ! -f "$pkg_file" ]] && { echo "${red}  Package file not found${reset}"; return 1; }
+
+    echo ""
+    echo "${bold}  Package tiers${reset}"
+    echo ""
+
+    local current_tier=""
+    while IFS= read -r line; do
+        [[ -z "$line" || "$line" =~ ^[[:space:]]*# ]] && continue
+        # Tier header (2-space indent key:)
+        if [[ "$line" =~ ^[[:space:]]{2}([a-z_]+):$ ]]; then
+            current_tier="${match[1]}"
+            echo "  ${yellow}$current_tier${reset}"
+        # Package item
+        elif [[ "$line" =~ ^[[:space:]]+-[[:space:]]+([^#]+) ]]; then
+            local pkg="${match[1]%% }"
+            local comment=""
+            [[ "$line" =~ '#'[[:space:]]*(.+)$ ]] && comment="${match[1]}"
+            local bin="$(_shellkit_pkg_cmd "$pkg")"
+            local status="${dim}--${reset}"
+            command -v "$bin" &>/dev/null && status="${green}OK${reset}"
+            printf "    %s  %-16s" "$status" "$pkg"
+            [[ -n "$comment" ]] && printf " ${dim}%s${reset}" "$comment"
+            printf "\n"
+        fi
+    done < "$pkg_file"
+    echo ""
+}
+
+_shellkit_info() {
+    local version="$(_shellkit_version)"
+    echo ""
+    echo "${bold}  shellkit${reset} ${dim}v${version}${reset}"
+    echo ""
+
+    echo "  ${yellow}System${reset}"
+    printf "    %-16s ${bold}%s${reset}\n" "Profile" "$(_shellkit_chezmoi_val .profile)"
+    printf "    %-16s %s\n" "OS" "${OS_TYPE:-unknown}"
+    printf "    %-16s %s\n" "Shell" "zsh ${ZSH_VERSION}"
+    printf "    %-16s %s\n" "Terminal" "${TERM_PROGRAM:-${TERM:-unknown}}"
+    printf "    %-16s %s\n" "Source" "$(_shellkit_source_dir)"
+    echo ""
+
+    echo "  ${yellow}Integrations${reset}"
+    for tool in atuin zoxide fzf direnv; do
+        if command -v "$tool" &>/dev/null; then
+            local ver="$("$tool" --version 2>/dev/null | head -1)"
+            printf "    ${green}OK${reset}  %-12s ${dim}%s${reset}\n" "$tool" "$ver"
+        else
+            printf "    ${dim}--${reset}  %-12s\n" "$tool"
+        fi
+    done
+    echo ""
+
+    echo "  ${yellow}Plugins${reset}"
+    if command -v antidote &>/dev/null; then
+        local plugins_file="${ZDOTDIR:-$HOME}/.zsh_plugins.txt"
+        local pcount=0
+        [[ -f "$plugins_file" ]] && pcount=$(grep -cv '^\s*#\|^\s*$' "$plugins_file" 2>/dev/null || echo 0)
+        printf "    ${green}OK${reset}  antidote  ${dim}%d plugins${reset}\n" "$pcount"
+    else
+        printf "    ${dim}--${reset}  antidote\n"
+    fi
+    echo ""
+}
+
+_shellkit_config() {
+    echo ""
+    echo "${bold}  Current configuration${reset}"
+    echo ""
+
+    echo "  ${yellow}Profile${reset}"
+    printf "    %-20s ${bold}%s${reset}\n" "profile" "$(_shellkit_chezmoi_val .profile)"
+    printf "    %-20s %s\n" "os_type" "$(_shellkit_chezmoi_val .os_type)"
+    echo ""
+
+    echo "  ${yellow}Identities${reset}"
+    local pname="$(_shellkit_chezmoi_val .identities.personal.name)"
+    local pemail="$(_shellkit_chezmoi_val .identities.personal.email)"
+    printf "    %-20s %s ${dim}<%s>${reset}\n" "personal" "$pname" "$pemail"
+    local work_enabled="$(_shellkit_chezmoi_val .identities.work.enabled)"
+    if [[ "$work_enabled" == "true" ]]; then
+        local wname="$(_shellkit_chezmoi_val .identities.work.name)"
+        local wemail="$(_shellkit_chezmoi_val .identities.work.email)"
+        printf "    %-20s %s ${dim}<%s>${reset}\n" "work" "$wname" "$wemail"
+    else
+        printf "    %-20s ${dim}disabled${reset}\n" "work"
+    fi
+    echo ""
+
+    echo "  ${yellow}Tool toggles${reset}"
+    for toggle in install_atuin install_zoxide install_fzf enable_sudo_biometrics; do
+        local val="$(_shellkit_chezmoi_val ".$toggle")"
+        local label="${toggle#install_}"
+        label="${label#enable_}"
+        if [[ "$val" == "true" ]]; then
+            printf "    ${green}ON${reset}  %s\n" "$label"
+        else
+            printf "    ${dim}off${reset} %s\n" "$label"
+        fi
+    done
+    echo ""
+
+    echo "  ${yellow}Git directories${reset}"
+    printf "    %-20s %s\n" "personal" "$(_shellkit_chezmoi_val .gitDirs.personal)"
+    printf "    %-20s %s\n" "work" "$(_shellkit_chezmoi_val .gitDirs.work)"
+    echo ""
+}
+
+_shellkit_doctor() {
+    local issues=0
+    echo ""
+    echo "${bold}  shellkit doctor${reset}"
+    echo ""
+
+    echo "  ${yellow}Core tools${reset}"
+    for tool in chezmoi zsh git; do
+        if command -v "$tool" &>/dev/null; then
+            printf "    ${green}OK${reset}  %s\n" "$tool"
+        else
+            printf "    ${red}!!${reset}  %s ${red}not found${reset}\n" "$tool"
+            ((issues++))
+        fi
+    done
+    echo ""
+
+    echo "  ${yellow}Source directory${reset}"
+    local src="$(_shellkit_source_dir)"
+    if [[ -d "$src" ]]; then
+        printf "    ${green}OK${reset}  %s\n" "$src"
+        if git -C "$src" rev-parse --is-inside-work-tree &>/dev/null; then
+            local changes=$(git -C "$src" status --porcelain 2>/dev/null | wc -l | tr -d ' ')
+            [[ "$changes" -gt 0 ]] && printf "    ${yellow}!!${reset}  %d uncommitted change(s)\n" "$changes"
+        fi
+    else
+        printf "    ${red}!!${reset}  source directory not found\n"
+        ((issues++))
+    fi
+    echo ""
+
+    echo "  ${yellow}Managed files${reset}"
+    local managed_count=$(chezmoi managed 2>/dev/null | wc -l | tr -d ' ')
+    printf "    ${green}OK${reset}  %d files managed\n" "$managed_count"
+    local drift=$(chezmoi diff 2>/dev/null | head -1)
+    if [[ -n "$drift" ]]; then
+        printf "    ${yellow}!!${reset}  config drift detected ${dim}(run shellkit diff)${reset}\n"
+    else
+        printf "    ${green}OK${reset}  no drift\n"
+    fi
+    echo ""
+
+    echo "  ${yellow}Shell${reset}"
+    local funcs_dir="${ZDOTDIR:-$HOME}/.zsh/functions"
+    if [[ -d "$funcs_dir" ]]; then
+        local fcount=$(ls "$funcs_dir" 2>/dev/null | wc -l | tr -d ' ')
+        printf "    ${green}OK${reset}  %d functions loaded\n" "$fcount"
+    else
+        printf "    ${red}!!${reset}  functions directory missing\n"
+        ((issues++))
+    fi
+    local alias_count=$(alias 2>/dev/null | wc -l | tr -d ' ')
+    printf "    ${green}OK${reset}  %d aliases active\n" "$alias_count"
+    local zshrc_local="${ZDOTDIR:-$HOME}/.zshrc.local"
+    if [[ -f "$zshrc_local" ]]; then
+        printf "    ${green}OK${reset}  .zshrc.local present\n"
+    else
+        printf "    ${dim}--${reset}  .zshrc.local ${dim}(optional)${reset}\n"
+    fi
+    echo ""
+
+    echo "  ${yellow}Optional tools${reset}"
+    for tool in fzf zoxide atuin direnv antidote nvim bat eza delta btop glow; do
+        if command -v "$tool" &>/dev/null; then
+            printf "    ${green}OK${reset}  %s\n" "$tool"
+        else
+            printf "    ${dim}--${reset}  %s\n" "$tool"
+        fi
+    done
+    echo ""
+
+    if [[ "$issues" -eq 0 ]]; then
+        echo "  ${green}All clear.${reset}"
+    else
+        echo "  ${red}$issues issue(s) found.${reset}"
+    fi
+    echo ""
+}
+
+_shellkit_help() {
+    local version="$(_shellkit_version)"
+    echo ""
+    echo "${bold}  shellkit${reset} ${dim}v${version} — manage your shell configuration${reset}"
+    echo ""
+    echo "${yellow}  Getting the latest:${reset}"
+    _shellkit_row "shellkit update" "Pull latest changes and apply"
+    echo "    ${dim}Local .zshrc additions are safely moved to .zshrc.local${reset}"
+    echo ""
+    echo "${yellow}  Configuration:${reset}"
+    _shellkit_row "shellkit diff" "Preview pending changes"
+    _shellkit_row "shellkit status" "Show changed files"
+    _shellkit_row "shellkit apply" "Apply changes (with .zshrc protection)"
+    _shellkit_row "shellkit edit" "Edit config files (applies on save)"
+    _shellkit_row "shellkit config" "Show current settings and toggles"
+    _shellkit_row "shellkit cd" "Jump to source directory"
+    echo ""
+    echo "${yellow}  Discovery:${reset}"
+    _shellkit_row "shellkit aliases [cat|search <q>]" "Browse and search aliases"
+    _shellkit_row "shellkit functions" "List shell functions"
+    _shellkit_row "shellkit packages" "Show installed packages"
+    echo ""
+    echo "${yellow}  Diagnostics:${reset}"
+    _shellkit_row "shellkit info" "System info and tool versions"
+    _shellkit_row "shellkit doctor" "Health check"
+    echo ""
+    echo "  ${dim}See also: ${green}secrets${reset}${dim}, ${green}mon${reset}${dim}, ${green}sudo-biometrics${reset}${dim}, ${green}reload${reset}"
+    echo ""
+}
+
+# ── Dispatch ─────────────────────────────────────────────────────────────────
+
 case "$cmd" in
-    update)
-        echo "==> Updating shellkit..."
-        chezmoi update --apply=false || { echo "${red}==> Pull failed${reset}"; return 1; }
-        _shellkit_protect_zshrc || { echo "==> Aborted."; return 0; }
-        chezmoi apply
-        echo "==> Done. Restart your shell or run 'reload' to apply changes."
-        ;;
-    apply)
-        _shellkit_protect_zshrc || { echo "==> Aborted."; return 0; }
-        chezmoi apply
-        ;;
-    edit)
-        chezmoi edit --apply
-        ;;
-    diff)
-        chezmoi diff
-        ;;
-    status)
-        chezmoi status
-        ;;
-    cd)
-        cd "$(chezmoi source-path)"
-        ;;
-    help|--help|-h|*)
-        echo ""
-        echo "${bold}  🐚 shellkit${reset} ${dim}— manage your shell configuration${reset}"
-        echo ""
-        echo "${yellow}  Getting the latest:${reset}"
-        echo "    ${green}shellkit update${reset}    Pull latest changes and apply"
-        echo "    ${dim}    Local .zshrc additions can be moved to .zshrc.local${reset}"
-        echo ""
-        echo "${yellow}  Day-to-day:${reset}"
-        echo "    ${green}shellkit diff${reset}      Preview pending changes"
-        echo "    ${green}shellkit status${reset}    Show changed files"
-        echo "    ${green}shellkit apply${reset}     Apply changes (with .zshrc protection)"
-        echo "    ${green}shellkit edit${reset}      Edit config files (applies on save)"
-        echo "    ${green}shellkit cd${reset}        Jump to shellkit source directory"
-        echo ""
-        ;;
+    update)                _shellkit_update ;;
+    apply)                 _shellkit_apply ;;
+    edit)                  chezmoi edit --apply ;;
+    diff)                  chezmoi diff ;;
+    status)                chezmoi status ;;
+    cd)                    cd "$(_shellkit_source_dir)" ;;
+    aliases)               _shellkit_aliases "$@" ;;
+    functions)             _shellkit_functions ;;
+    packages)              _shellkit_packages ;;
+    info)                  _shellkit_info ;;
+    config)                _shellkit_config ;;
+    doctor)                _shellkit_doctor ;;
+    version|--version|-v)  echo "shellkit $(_shellkit_version)" ;;
+    help|--help|-h)        _shellkit_help ;;
+    *)
+        echo "${red}  Unknown command: $cmd${reset}"
+        echo "  Run ${green}shellkit help${reset} for available commands."
+        return 1 ;;
 esac
