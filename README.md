@@ -47,6 +47,7 @@ flowchart LR
 | 👆 **Touch ID for sudo** | Biometric sudo on macOS (auto-enabled) |
 | 👥 **Multi-identity Git** | Separate personal and work Git/SSH identities |
 | 🔐 **Secret management** | Per-directory env vars with direnv + 1Password CLI |
+| 📋 **Copy Claude Plan** | iTerm2 hotkey to copy Claude Code plan blocks to clipboard (macOS, full profile) |
 
 ## 📥 Installation
 
@@ -138,6 +139,9 @@ shellkit/
 │
 ├── private_dot_ssh/
 │   └── config.tmpl             # SSH config with host aliases
+│
+├── iterm2/
+│   └── copy_claude_plan.py     # Copy Claude plan block to clipboard (iTerm2 Python API)
 │
 ├── .chezmoidata/
 │   └── packages.yaml           # Declarative package list
@@ -363,6 +367,42 @@ secrets op-login
 | `flushdns` | Clear DNS cache |
 
 > **Note:** Clone repos into `~/repos/personal/` or `~/repos/work/` to automatically use the correct Git identity.
+
+---
+
+## 📋 iTerm2: Copy Claude Plan
+
+**macOS, full profile only.** An iTerm2 Python API script that copies the most recent Claude Code plan block from terminal scrollback to the clipboard via a hotkey.
+
+<details>
+<summary><strong>Setup</strong></summary>
+
+The script is auto-deployed to `~/Library/Application Support/iTerm2/Scripts/AutoLaunch/` by `chezmoi apply`. To activate:
+
+1. **Enable Python API**: iTerm2 > Settings > General > Magic > Enable Python API
+2. **Install Python Runtime** if prompted: Scripts > Manage > Install Python Runtime
+3. **Restart iTerm2** (AutoLaunch picks up the script automatically)
+4. **Bind a hotkey**: Settings > Keys > Key Bindings > **+**
+   - Action: **Invoke Script Function**
+   - Function: `copy_claude_plan()`
+   - Assign your preferred key combination
+
+</details>
+
+<details>
+<summary><strong>How it works</strong></summary>
+
+When invoked, the script:
+1. Scans the last 20,000 lines of scrollback (bottom-up)
+2. Finds the most recent `Ready to code?` marker
+3. Includes any decorative border lines above it
+4. Captures everything up to (but not including) the end divider
+5. Copies the block to the system clipboard via `pbcopy`
+6. Highlights the copied region in the terminal
+
+Configuration constants (in `iterm2/copy_claude_plan.py`): `MAX_LINES`, `SELECT_IN_TERMINAL`, `DEBUG`.
+
+</details>
 
 ---
 

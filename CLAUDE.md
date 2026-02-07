@@ -15,6 +15,7 @@ shellkit/
 │   └── paths.zsh         # PATH setup
 ├── dot_config/           # Tool configs (atuin, nvim)
 ├── private_dot_ssh/      # SSH configuration templates
+├── iterm2/               # iTerm2 Python API scripts (deployed via run script)
 ├── .chezmoidata/         # Package definitions (packages.yaml)
 └── run_*.sh.tmpl         # Bootstrap and install scripts
 ```
@@ -27,6 +28,7 @@ shellkit/
 - **Functions**: Add new functions to `dot_zsh/functions/` and autoload in `dot_zshrc.tmpl`
 - **Aliases**: Add to appropriate file in `dot_zsh/aliases/`
 - **Packages**: Define in `.chezmoidata/packages.yaml`
+- **iTerm2 scripts**: Add to `iterm2/`, deployed to AutoLaunch via `run_onchange_after_deploy-iterm2-scripts.sh.tmpl`
 - **Local overrides**: Users can create `~/.zshrc.local` for machine-specific config (not managed by chezmoi)
 
 ## Development Commands

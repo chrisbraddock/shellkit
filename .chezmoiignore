@@ -8,6 +8,7 @@ LICENSE
 init.sh
 install.sh
 scripts/
+iterm2/
 cliff.toml
 VERSION
 CHANGELOG.md

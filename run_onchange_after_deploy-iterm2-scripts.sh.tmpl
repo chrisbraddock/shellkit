@@ -1,0 +1,22 @@
+{{ if and (eq .chezmoi.os "darwin") (eq .profile "full") -}}
+#!/usr/bin/env bash
+# Deploy iTerm2 Python API scripts to AutoLaunch directory
+# hash: {{ include "iterm2/copy_claude_plan.py" | sha256sum }}
+set -euo pipefail
+
+AUTOLAUNCH_DIR="${HOME}/Library/Application Support/iTerm2/Scripts/AutoLaunch"
+mkdir -p "${AUTOLAUNCH_DIR}"
+
+echo "==> Deploying iTerm2 scripts..."
+
+cat > "${AUTOLAUNCH_DIR}/copy_claude_plan.py" << 'PYTHON_EOF'
+{{ include "iterm2/copy_claude_plan.py" }}
+PYTHON_EOF
+
+chmod +x "${AUTOLAUNCH_DIR}/copy_claude_plan.py"
+
+echo "    Deployed: copy_claude_plan.py"
+echo "==> iTerm2 scripts deployed"
+echo "    Note: Enable Python API (Settings > General > Magic) and restart iTerm2"
+echo "    Bind hotkey: Settings > Keys > + > Invoke Script Function > copy_claude_plan()"
+{{ end -}}
