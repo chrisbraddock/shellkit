@@ -4,7 +4,7 @@
 
 **A fast, modern shell configuration managed with [chezmoi](https://www.chezmoi.io/)**
 
-[![Version](https://img.shields.io/badge/version-1.2.0-blue.svg)](https://github.com/chrisbraddock/shellkit/releases)
+[![Version](https://img.shields.io/badge/version-1.3.0-blue.svg)](https://github.com/chrisbraddock/shellkit/releases)
 [![License](https://img.shields.io/badge/license-MIT-green.svg)](LICENSE)
 [![Platform](https://img.shields.io/badge/platform-macOS%20%7C%20Linux%20%7C%20WSL-lightgrey.svg)]()
 

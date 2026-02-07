@@ -2,6 +2,22 @@
 
 All notable changes to shellkit will be documented in this file.
 
+## [1.3.0] - 2026-02-07
+
+
+### Features
+
+- Add glog alias for pretty one-line git log
+- Add iTerm2 script to copy Claude Code plan blocks to clipboard
+- Isolate shell history per terminal session
+- Add file explorer sidebar with nvim-tree
+- Redesign help output with colors and grouped commands
+- Add .zshrc protection with migrate-to-local option
+
+
+### Miscellaneous
+
+- Update gitignore for plugin working files and local overrides
 ## [1.2.0] - 2026-02-04
 
 
