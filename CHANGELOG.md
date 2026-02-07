@@ -2,6 +2,19 @@
 
 All notable changes to shellkit will be documented in this file.
 
+## [1.4.0] - 2026-02-07
+
+
+### Bug Fixes
+
+- Use lightweight shell for fzf preview commands
+
+
+### Features
+
+- Add treesitter for syntax highlighting
+- Rewrite as full-fledged CLI with discovery and diagnostics
+- Add fzf-powered interactive TUI navigation
 ## [1.3.0] - 2026-02-07
 
 
