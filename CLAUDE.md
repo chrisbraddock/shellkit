@@ -14,6 +14,7 @@ shellkit/
 │   ├── os-detect.zsh     # Sets $OS_TYPE variable
 │   └── paths.zsh         # PATH setup
 ├── dot_config/           # Tool configs (atuin, nvim)
+│   └── nvim/lua/         # Neovim Lua config (lazy.nvim, nvim-tree)
 ├── private_dot_ssh/      # SSH configuration templates
 ├── iterm2/               # iTerm2 Python API scripts (deployed via run script)
 ├── .chezmoidata/         # Package definitions (packages.yaml)
@@ -29,6 +30,7 @@ shellkit/
 - **Aliases**: Add to appropriate file in `dot_zsh/aliases/`
 - **Packages**: Define in `.chezmoidata/packages.yaml`
 - **iTerm2 scripts**: Add to `iterm2/`, deployed to AutoLaunch via `run_onchange_after_deploy-iterm2-scripts.sh.tmpl`
+- **Neovim plugins**: Add plugin specs to `dot_config/nvim/lua/plugins.lua`, config to `dot_config/nvim/lua/plugin/`
 - **Local overrides**: Users can create `~/.zshrc.local` for machine-specific config (not managed by chezmoi)
 
 ## Development Commands

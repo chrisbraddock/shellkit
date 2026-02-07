@@ -47,6 +47,7 @@ flowchart LR
 | 👆 **Touch ID for sudo** | Biometric sudo on macOS (auto-enabled) |
 | 👥 **Multi-identity Git** | Separate personal and work Git/SSH identities |
 | 🔐 **Secret management** | Per-directory env vars with direnv + 1Password CLI |
+| 📂 **File Explorer** | nvim-tree sidebar with auto-open, git status, and icons (neovim) |
 | 📋 **Copy Claude Plan** | iTerm2 hotkey to copy Claude Code plan blocks to clipboard (macOS, full profile) |
 
 ## 📥 Installation
@@ -135,7 +136,9 @@ shellkit/
 │
 ├── dot_config/
 │   ├── atuin/config.toml       # Local-only history config
-│   └── nvim/init.vim           # Neovim configuration
+│   └── nvim/
+│       ├── init.vim            # Sources vimrc + loads Lua config
+│       └── lua/                # Neovim Lua config (plugins, nvim-tree)
 │
 ├── private_dot_ssh/
 │   └── config.tmpl             # SSH config with host aliases

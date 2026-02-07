@@ -16,3 +16,6 @@ set termguicolors
 
 " Live substitution preview
 set inccommand=split
+
+" Load Lua configuration (plugins, nvim-tree, etc.)
+lua require('init')
