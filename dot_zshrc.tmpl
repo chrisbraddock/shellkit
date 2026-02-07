@@ -28,8 +28,9 @@ setopt HIST_IGNORE_SPACE         # Don't record lines starting with space
 setopt HIST_FIND_NO_DUPS         # Don't display duplicates in search
 setopt HIST_REDUCE_BLANKS        # Remove superfluous blanks
 setopt HIST_VERIFY               # Don't execute immediately on history expansion
-setopt SHARE_HISTORY             # Share history between sessions
-setopt INC_APPEND_HISTORY        # Add commands immediately
+setopt APPEND_HISTORY            # Append to history file (don't overwrite)
+setopt INC_APPEND_HISTORY        # Add commands immediately (for crash protection)
+# Note: SHARE_HISTORY is intentionally disabled - each terminal has its own session history
 
 # Directory navigation
 setopt AUTO_CD                   # cd by typing directory name
