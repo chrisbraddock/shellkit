@@ -222,23 +222,42 @@ _shellkit_aliases() {
     local file="$aliases_dir/${subcmd}.zsh"
     [[ ! -f "$file" ]] && { echo "${red}  Unknown category: $subcmd${reset}"; echo "  ${dim}Available: $(print -l "$aliases_dir"/*.zsh(N:t:r) | tr '\n' ' ')${reset}"; return 1; }
 
-    echo ""
-    echo "${bold}  $subcmd aliases${reset}"
-    echo ""
-    while IFS= read -r line; do
-        if [[ "$line" =~ ^#\ -+$ ]]; then
-            continue
-        elif [[ "$line" =~ ^#\ =+$ ]]; then
-            continue
-        elif [[ "$line" =~ ^#[[:space:]]+(.+)$ ]] && [[ ! "${match[1]}" =~ ^[-=]+ ]]; then
-            local header="${match[1]}"
-            [[ "$header" == *"Aliases"* || "$header" == *"Consolidated"* ]] && continue
-            echo "  ${yellow}$header${reset}"
-        elif [[ "$line" =~ ^[[:space:]]*alias[[:space:]]+([^=]+)=(.+)$ ]]; then
-            printf "    ${green}%-16s${reset} ${dim}%s${reset}\n" "${match[1]}" "${match[2]}"
-        fi
-    done < "$file"
-    echo ""
+    if _shellkit_has_fzf; then
+        local alias_lines=()
+        while IFS= read -r line; do
+            if [[ "$line" =~ ^#\ -+$ || "$line" =~ ^#\ =+$ ]]; then
+                continue
+            elif [[ "$line" =~ ^#[[:space:]]+(.+)$ ]] && [[ ! "${match[1]}" =~ ^[-=]+ ]]; then
+                local header="${match[1]}"
+                [[ "$header" == *"Aliases"* || "$header" == *"Consolidated"* ]] && continue
+                alias_lines+=("${yellow}── $header ──${reset}")
+            elif [[ "$line" =~ ^[[:space:]]*alias[[:space:]]+([^=]+)=(.+)$ ]]; then
+                alias_lines+=("$(printf "${green}%-16s${reset}  ${dim}%s${reset}" "${match[1]}" "${match[2]}")")
+            fi
+        done < "$file"
+        printf '%s\n' "${alias_lines[@]}" | \
+            fzf --ansi --height=80% --layout=reverse --bind=left:abort --border --border-label=" $subcmd aliases " \
+                --prompt='filter> ' \
+                --header=$'← back  esc quit'
+    else
+        echo ""
+        echo "${bold}  $subcmd aliases${reset}"
+        echo ""
+        while IFS= read -r line; do
+            if [[ "$line" =~ ^#\ -+$ ]]; then
+                continue
+            elif [[ "$line" =~ ^#\ =+$ ]]; then
+                continue
+            elif [[ "$line" =~ ^#[[:space:]]+(.+)$ ]] && [[ ! "${match[1]}" =~ ^[-=]+ ]]; then
+                local header="${match[1]}"
+                [[ "$header" == *"Aliases"* || "$header" == *"Consolidated"* ]] && continue
+                echo "  ${yellow}$header${reset}"
+            elif [[ "$line" =~ ^[[:space:]]*alias[[:space:]]+([^=]+)=(.+)$ ]]; then
+                printf "    ${green}%-16s${reset} ${dim}%s${reset}\n" "${match[1]}" "${match[2]}"
+            fi
+        done < "$file"
+        echo ""
+    fi
 }
 
 _shellkit_functions() {
