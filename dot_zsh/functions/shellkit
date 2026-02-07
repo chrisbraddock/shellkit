@@ -100,6 +100,9 @@ _shellkit_interactive() {
         return
     fi
 
+    # Preview uses a lightweight non-interactive shell (skips prompt, plugins, gitstatus)
+    local preview="zsh -c 'source ~/.zsh/os-detect.zsh 2>/dev/null; fpath=(~/.zsh/functions \$fpath); autoload -Uz shellkit; shellkit \"\$1\"' -- {1} 2>/dev/null"
+
     local choice
     choice=$(printf '%s\n' \
         "aliases       Browse and search aliases" \
@@ -111,7 +114,7 @@ _shellkit_interactive() {
         | fzf --ansi --height=80% --border --border-label=" shellkit v$(_shellkit_version) " \
               --prompt='shellkit> ' \
               --header=$'Navigate with arrows, Enter to select, Esc to quit' \
-              --preview='zsh -ic "shellkit {1}" 2>/dev/null' \
+              --preview="$preview" \
               --preview-window=right:60%:wrap)
 
     [[ -z "$choice" ]] && return 0
@@ -139,6 +142,7 @@ _shellkit_aliases() {
     if [[ -z "$subcmd" ]]; then
         if _shellkit_has_fzf; then
             local choice
+            local preview="zsh -c 'source ~/.zsh/os-detect.zsh 2>/dev/null; fpath=(~/.zsh/functions \$fpath); autoload -Uz shellkit; shellkit aliases \"\$1\"' -- {1} 2>/dev/null"
             choice=$(for file in "$aliases_dir"/*.zsh(N); do
                 local name="${file:t:r}"
                 local count=$(grep -c '^[[:space:]]*alias ' "$file" 2>/dev/null || echo 0)
@@ -146,7 +150,7 @@ _shellkit_aliases() {
             done | fzf --ansi --height=80% --border --border-label=' aliases ' \
                       --prompt='category> ' \
                       --header=$'Select a category to browse, Esc to quit' \
-                      --preview='zsh -ic "shellkit aliases {1}" 2>/dev/null' \
+                      --preview="$preview" \
                       --preview-window=right:60%:wrap)
             [[ -z "$choice" ]] && return 0
             _shellkit_aliases "${choice%% *}"
