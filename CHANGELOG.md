@@ -2,6 +2,14 @@
 
 All notable changes to shellkit will be documented in this file.
 
+## [1.5.1] - 2026-02-08
+
+
+### Bug Fixes
+
+- Strip all trailing spaces from package names
+- Add binary mappings for git-delta and 1password-cli
+- Suppress p10k instant prompt warning from direnv output
 ## [1.5.0] - 2026-02-07
 
 
