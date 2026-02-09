@@ -407,7 +407,7 @@ _shellkit_info() {
     echo ""
 
     echo "  ${yellow}Integrations${reset}"
-    for tool in atuin zoxide fzf direnv; do
+    for tool in atuin zoxide fzf direnv tmux; do
         if command -v "$tool" &>/dev/null; then
             local ver="$("$tool" --version 2>/dev/null | head -1)"
             printf "    ${green}OK${reset}  %-12s ${dim}%s${reset}\n" "$tool" "$ver"

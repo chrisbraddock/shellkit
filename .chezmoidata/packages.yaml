@@ -8,6 +8,7 @@ packages:
     - fzf
     - zoxide
     - direnv
+    - tmux
 
   # Tier 2: Editor essentials
   editor:
@@ -20,7 +21,6 @@ packages:
     - jq
     - bat
     - tree
-    - tmux
     - git-lfs
     - git-cliff    # Changelog generator
     - pipx         # Python package manager for CLI tools
