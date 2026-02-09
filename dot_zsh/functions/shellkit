@@ -111,6 +111,7 @@ _shellkit_interactive() {
             "aliases       Browse and search aliases" \
             "functions     List shell functions" \
             "packages      Show installed packages" \
+            "tmux          Tmux quick reference" \
             "info          System info and tool versions" \
             "config        Show current settings and toggles" \
             "doctor        Health check" \
@@ -551,6 +552,73 @@ _shellkit_doctor() {
     echo ""
 }
 
+_shellkit_tmux() {
+    echo ""
+    echo "${bold}  tmux quick reference${reset}"
+    echo ""
+
+    echo "  ${yellow}Core Concepts${reset}"
+    echo "    ${dim}Sessions contain windows, windows contain panes.${reset}"
+    echo "    ${dim}The prefix key is${reset} ${green}Ctrl-b${reset} ${dim}(press before any tmux keybinding).${reset}"
+    echo ""
+
+    echo "  ${yellow}Sessions${reset}"
+    _shellkit_row "tns <name>" "Create a new named session"
+    _shellkit_row "tls" "List all sessions"
+    _shellkit_row "ta" "Attach to most recent session"
+    _shellkit_row "tas <name>" "Attach to a named session"
+    _shellkit_row "tad" "Attach and detach other clients"
+    _shellkit_row "tks <name>" "Kill a session"
+    _shellkit_row "Ctrl-b d" "Detach from current session"
+    _shellkit_row "Ctrl-b s" "Switch between sessions"
+    echo ""
+
+    echo "  ${yellow}Windows${reset} ${dim}(like tabs)${reset}"
+    _shellkit_row "Ctrl-b c" "Create new window"
+    _shellkit_row "Ctrl-b n / p" "Next / previous window"
+    _shellkit_row "Ctrl-b 0-9" "Jump to window by number"
+    _shellkit_row "Ctrl-b ," "Rename current window"
+    _shellkit_row "Ctrl-b &" "Close current window"
+    _shellkit_row "Ctrl-b w" "Pick window from list"
+    echo ""
+
+    echo "  ${yellow}Panes${reset} ${dim}(splits within a window)${reset}"
+    _shellkit_row "Ctrl-b %" "Split vertically"
+    _shellkit_row 'Ctrl-b "' "Split horizontally"
+    _shellkit_row "Ctrl-b arrow" "Move between panes"
+    _shellkit_row "Ctrl-b z" "Toggle pane zoom (fullscreen)"
+    _shellkit_row "Ctrl-b x" "Close current pane"
+    _shellkit_row "Ctrl-b {  /  }" "Swap pane left / right"
+    _shellkit_row "Ctrl-b Space" "Cycle pane layouts"
+    echo ""
+
+    echo "  ${yellow}Copy Mode${reset} ${dim}(scroll & select)${reset}"
+    _shellkit_row "Ctrl-b [" "Enter copy mode (scroll with arrows/pgup)"
+    _shellkit_row "q" "Exit copy mode"
+    echo ""
+
+    if [[ "$TERM_PROGRAM" == "iTerm.app" ]]; then
+        echo "  ${yellow}iTerm2 Integration${reset}"
+        echo "    ${dim}iTerm2 can control tmux natively — tmux windows become real tabs,${reset}"
+        echo "    ${dim}panes become real splits. Use these instead of raw tmux:${reset}"
+        echo ""
+        _shellkit_row "tcc" "New session in iTerm2 control mode"
+        _shellkit_row "tccs <name>" "New named session in control mode"
+        _shellkit_row "tcca" "Attach in control mode"
+        _shellkit_row "tccas <name>" "Attach to named session in control mode"
+        echo ""
+        echo "    ${dim}In control mode, use iTerm2 shortcuts (Cmd-T, Cmd-D) instead of${reset}"
+        echo "    ${dim}Ctrl-b. To exit control mode, close the iTerm2 tab/window.${reset}"
+        echo ""
+    fi
+
+    echo "  ${yellow}Useful Commands${reset}"
+    _shellkit_row "tmux info" "Show tmux server info"
+    _shellkit_row "tmux source ~/.tmux.conf" "Reload config"
+    _shellkit_row "tkill" "Kill the entire tmux server"
+    echo ""
+}
+
 _shellkit_help() {
     local version="$(_shellkit_version)"
     echo ""
@@ -572,6 +640,7 @@ _shellkit_help() {
     _shellkit_row "shellkit aliases [cat|search <q>]" "Browse and search aliases"
     _shellkit_row "shellkit functions" "List shell functions"
     _shellkit_row "shellkit packages" "Show installed packages"
+    _shellkit_row "shellkit tmux" "Tmux quick reference"
     echo ""
     echo "${yellow}  Diagnostics:${reset}"
     _shellkit_row "shellkit info" "System info and tool versions"
@@ -595,6 +664,7 @@ case "$cmd" in
     aliases)               _shellkit_aliases "$@" ;;
     functions)             _shellkit_functions ;;
     packages)              _shellkit_packages ;;
+    tmux)                  _shellkit_tmux ;;
     info)                  _shellkit_info ;;
     config)                _shellkit_config ;;
     doctor)                _shellkit_doctor ;;
