@@ -58,20 +58,23 @@ def _find_start_marker(lines):
     return None
 
 
-def _find_border_top(lines, start_idx):
-    """Walk upward from start_idx to include decorative border lines.
+def _find_content_start(lines, start_idx):
+    """Find where the plan content begins after the header block.
 
-    Border lines consist of box-drawing characters and whitespace.
-    Returns the index of the topmost border line (inclusive).
+    Starting from the 'Ready to code?' line, scan forward past
+    'Here is Claude's plan:', border lines, and blank lines to find
+    the first line of actual plan content.
     """
-    top = start_idx
-    for i in range(start_idx - 1, max(start_idx - 5, -1), -1):
+    for i in range(start_idx + 1, min(start_idx + 10, len(lines))):
         stripped = lines[i].strip()
-        if stripped and all(c in BORDER_CHARS for c in stripped):
-            top = i
-        else:
-            break
-    return top
+        if not stripped:
+            continue
+        if "Here is Claude's plan" in stripped:
+            continue
+        if all(c in BORDER_CHARS for c in stripped):
+            continue
+        return i
+    return start_idx + 1
 
 
 def _find_end_marker(lines, start_idx):
@@ -131,8 +134,8 @@ async def _do_copy(connection, session):
         logger.info("Start marker not found in %d lines", len(lines))
         return
 
-    # Step 3 — include border lines above start
-    border_top = _find_border_top(lines, start_idx)
+    # Step 3 — find where plan content starts (after header block)
+    content_start = _find_content_start(lines, start_idx)
 
     # Step 4 — find end marker (forward)
     end_idx = _find_end_marker(lines, start_idx)
@@ -141,7 +144,7 @@ async def _do_copy(connection, session):
         return
 
     # Step 5 — extract block (end marker line excluded)
-    block = lines[border_top:end_idx]
+    block = lines[content_start:end_idx]
     if not block:
         logger.info("Empty block")
         return
@@ -157,7 +160,7 @@ async def _do_copy(connection, session):
 
     # Step 7 — optional terminal selection
     if SELECT_IN_TERMINAL:
-        await _select_range(session, first, border_top, end_idx)
+        await _select_range(session, first, content_start, end_idx)
 
 
 async def _select_range(session, first_line, block_start, block_end):
