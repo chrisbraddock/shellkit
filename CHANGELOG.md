@@ -2,6 +2,17 @@
 
 All notable changes to shellkit will be documented in this file.
 
+## [1.7.0] - 2026-02-10
+
+
+### Bug Fixes
+
+- Select plan content instead of header block
+
+
+### Features
+
+- Add tmux quick reference page to TUI
 ## [1.6.0] - 2026-02-09
 
 
