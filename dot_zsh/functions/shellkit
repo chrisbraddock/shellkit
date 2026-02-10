@@ -112,6 +112,7 @@ _shellkit_interactive() {
             "functions     List shell functions" \
             "packages      Show installed packages" \
             "tmux          Tmux quick reference" \
+            "clipshot      Screenshot monitor for remote AI coding" \
             "info          System info and tool versions" \
             "config        Show current settings and toggles" \
             "doctor        Health check" \
@@ -619,6 +620,55 @@ _shellkit_tmux() {
     echo ""
 }
 
+_shellkit_clipshot() {
+    echo ""
+    echo "${bold}  clipshot quick reference${reset}"
+    echo ""
+
+    echo "  ${yellow}What is it?${reset}"
+    echo "    ${dim}Screenshot monitor for AI coding on remote servers.${reset}"
+    echo "    ${dim}Take a screenshot locally, it auto-uploads via SSH and copies${reset}"
+    echo "    ${dim}the path to clipboard — paste into Claude Code, Codex, etc.${reset}"
+    echo ""
+
+    echo "  ${yellow}Install${reset}"
+    _shellkit_row "npm install -g clipshot" "Install globally via npm"
+    echo ""
+
+    echo "  ${yellow}Commands${reset}"
+    _shellkit_row "clipshot" "First-time setup and start monitoring"
+    _shellkit_row "clipshot start" "Start monitoring (select target)"
+    _shellkit_row "clipshot stop" "Stop monitoring"
+    _shellkit_row "clipshot status" "Show running status and target"
+    _shellkit_row "clipshot config" "Modify remotes configuration"
+    _shellkit_row "clipshot uninstall" "Remove config files"
+    echo ""
+
+    echo "  ${yellow}Modes${reset}"
+    echo "    ${green}Local${reset}   ${dim}Saves to ~/clipshot-screenshots/, copies path to clipboard${reset}"
+    echo "    ${green}Remote${reset}  ${dim}Uploads via SSH, copies remote path to clipboard${reset}"
+    echo ""
+
+    echo "  ${yellow}Workflow${reset}"
+    echo "    ${dim}1. Start clipshot on your local machine${reset}"
+    echo "    ${dim}2. SSH into the remote server, run Claude Code${reset}"
+    echo "    ${dim}3. Take a screenshot (Cmd-Shift-4 / PrtSc)${reset}"
+    echo "    ${dim}4. Paste the path — clipshot auto-uploaded it${reset}"
+    echo ""
+
+    echo "  ${yellow}How it works${reset}"
+    echo "    ${dim}Polls clipboard for new images (200ms interval).${reset}"
+    echo "    ${dim}Detects changes via MD5 hash, uploads via SSH or saves locally,${reset}"
+    echo "    ${dim}then copies the absolute path to clipboard for pasting.${reset}"
+    echo "    ${dim}Uses SSH ControlMaster for fast connection reuse.${reset}"
+    echo ""
+
+    echo "  ${yellow}Remotes${reset}"
+    echo "    ${dim}Auto-detects SSH hosts from ~/.ssh/config and shell history.${reset}"
+    echo "    ${dim}Run${reset} ${green}clipshot config${reset} ${dim}to add or modify remote targets.${reset}"
+    echo ""
+}
+
 _shellkit_help() {
     local version="$(_shellkit_version)"
     echo ""
@@ -641,6 +691,7 @@ _shellkit_help() {
     _shellkit_row "shellkit functions" "List shell functions"
     _shellkit_row "shellkit packages" "Show installed packages"
     _shellkit_row "shellkit tmux" "Tmux quick reference"
+    _shellkit_row "shellkit clipshot" "Clipshot screenshot monitor reference"
     echo ""
     echo "${yellow}  Diagnostics:${reset}"
     _shellkit_row "shellkit info" "System info and tool versions"
@@ -665,6 +716,7 @@ case "$cmd" in
     functions)             _shellkit_functions ;;
     packages)              _shellkit_packages ;;
     tmux)                  _shellkit_tmux ;;
+    clipshot)              _shellkit_clipshot ;;
     info)                  _shellkit_info ;;
     config)                _shellkit_config ;;
     doctor)                _shellkit_doctor ;;

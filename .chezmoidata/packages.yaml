@@ -30,6 +30,10 @@ packages:
     - btop
     - htop
 
+  # NPM global packages (installed via npm install -g)
+  npm:
+    - clipshot     # Screenshot monitor for remote AI coding
+
   # Pip packages (installed via pipx)
   pip:
     - dunk         # Pretty git diff colorizer
