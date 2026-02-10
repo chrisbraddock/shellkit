@@ -29,14 +29,6 @@ DEBUG = False                # Enable debug logging to script console
 START_MARKER = "Ready to code?"
 END_DIVIDER_RE = re.compile(r"\u254c{10,}")   # ╌ (U+254C) repeated 10+ times
 END_PHRASE = "Claude has written up a plan"
-BORDER_CHARS = frozenset(
-    "\u2500\u2501\u2502\u2503\u250c\u250f\u2510\u2513"
-    "\u2514\u2517\u2518\u251b\u251c\u2524\u252c\u2534\u253c"
-    "\u2550\u2551\u2552\u2553\u2554\u2555\u2556\u2557"
-    "\u2558\u2559\u255a\u255b\u255c\u255d\u255e\u255f"
-    "\u2560\u2561\u2562\u2563\u2564\u2565\u2566\u2567"
-    "\u2568\u2569\u256a\u256b\u256c "
-)
 
 # ── Logging ───────────────────────────────────────────────────────────────────
 logger = logging.getLogger("copy_claude_plan")
@@ -59,22 +51,20 @@ def _find_start_marker(lines):
 
 
 def _find_content_start(lines, start_idx):
-    """Find where the plan content begins after the header block.
-
-    Starting from the 'Ready to code?' line, scan forward past
-    'Here is Claude's plan:', border lines, and blank lines to find
-    the first line of actual plan content.
-    """
-    for i in range(start_idx + 1, min(start_idx + 10, len(lines))):
-        stripped = lines[i].strip()
-        if not stripped:
-            continue
-        if "Here is Claude's plan" in stripped:
-            continue
-        if all(c in BORDER_CHARS for c in stripped):
-            continue
-        return i
-    return start_idx + 1
+    """Find where plan content begins (line after the first ╌╌╌ divider)."""
+    # Find first divider after start marker
+    divider_idx = None
+    for i in range(start_idx + 1, min(start_idx + 15, len(lines))):
+        if END_DIVIDER_RE.search(lines[i]):
+            divider_idx = i
+            break
+    if divider_idx is None:
+        return start_idx + 1
+    # Skip blank lines after divider
+    for i in range(divider_idx + 1, min(divider_idx + 5, len(lines))):
+        if lines[i].strip():
+            return i
+    return divider_idx + 1
 
 
 def _find_end_marker(lines, start_idx):
@@ -134,11 +124,11 @@ async def _do_copy(connection, session):
         logger.info("Start marker not found in %d lines", len(lines))
         return
 
-    # Step 3 — find where plan content starts (after header block)
+    # Step 3 — find where plan content starts (after first ╌╌╌ divider)
     content_start = _find_content_start(lines, start_idx)
 
-    # Step 4 — find end marker (forward)
-    end_idx = _find_end_marker(lines, start_idx)
+    # Step 4 — find end marker (second ╌╌╌ divider, searching from content)
+    end_idx = _find_end_marker(lines, content_start)
     if end_idx is None:
         logger.info("No end marker found after start at line %d", start_idx)
         return
