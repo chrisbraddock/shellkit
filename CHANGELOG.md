@@ -2,6 +2,17 @@
 
 All notable changes to shellkit will be documented in this file.
 
+## [1.8.0] - 2026-02-10
+
+
+### Bug Fixes
+
+- Anchor plan selection on divider lines
+
+
+### Features
+
+- Add clipshot package and TUI quick reference page
 ## [1.7.0] - 2026-02-10
 
 
