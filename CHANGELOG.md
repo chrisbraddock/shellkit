@@ -2,6 +2,12 @@
 
 All notable changes to shellkit will be documented in this file.
 
+## [1.8.1] - 2026-02-11
+
+
+### Bug Fixes
+
+- Auto-close nvim-tree when it's the last window
 ## [1.8.0] - 2026-02-10
 
 
