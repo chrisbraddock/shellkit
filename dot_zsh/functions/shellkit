@@ -113,6 +113,7 @@ _shellkit_interactive() {
             "packages      Show installed packages" \
             "tmux          Tmux quick reference" \
             "clipshot      Screenshot monitor for remote AI coding" \
+            "search        Search all shellkit content" \
             "info          System info and tool versions" \
             "config        Show current settings and toggles" \
             "doctor        Health check" \
@@ -669,6 +670,187 @@ _shellkit_clipshot() {
     echo ""
 }
 
+_shellkit_collect_search() {
+    local -n _entries=$1
+
+    # Aliases — parse all alias files
+    local aliases_dir="${ZDOTDIR:-$HOME}/.zsh/aliases"
+    for file in "$aliases_dir"/*.zsh(N); do
+        while IFS= read -r line; do
+            if [[ "$line" =~ ^[[:space:]]*alias[[:space:]]+([^=]+)=(.+)$ ]]; then
+                local aname="${match[1]}"
+                local acmd="${match[2]}"
+                _entries+=("$(printf "${cyan}[alias]${reset}     ${green}%-24s${reset} ${dim}%s${reset}" "$aname" "$acmd")")
+            fi
+        done < "$file"
+    done
+
+    # Functions — read description from first/second line
+    local funcs_dir="${ZDOTDIR:-$HOME}/.zsh/functions"
+    for func_file in "$funcs_dir"/*(N); do
+        local name="${func_file:t}"
+        [[ "$name" == _* ]] && continue
+        local desc=""
+        desc=$(sed -n '1{s/^#!.*//;s/^# *//p;}' "$func_file")
+        [[ -z "$desc" ]] && desc=$(sed -n '2{s/^# *//p;}' "$func_file")
+        _entries+=("$(printf "${cyan}[function]${reset}  ${green}%-24s${reset} ${dim}%s${reset}" "$name" "$desc")")
+    done
+
+    # Shellkit commands
+    local -a cmds=(
+        "shellkit update:Pull latest changes and apply"
+        "shellkit apply:Apply changes with .zshrc protection"
+        "shellkit diff:Preview pending changes"
+        "shellkit status:Show changed files"
+        "shellkit aliases:Browse and search aliases"
+        "shellkit functions:List shell functions"
+        "shellkit packages:Show installed packages"
+        "shellkit tmux:Tmux quick reference"
+        "shellkit clipshot:Clipshot screenshot monitor reference"
+        "shellkit info:System info and tool versions"
+        "shellkit config:Show current settings and toggles"
+        "shellkit doctor:Health check"
+        "shellkit search:Search all shellkit content"
+    )
+    for item in "${cmds[@]}"; do
+        local cname="${item%%:*}" cdesc="${item#*:}"
+        _entries+=("$(printf "${cyan}[command]${reset}   ${green}%-24s${reset} ${dim}%s${reset}" "$cname" "$cdesc")")
+    done
+
+    # Packages — parse packages.yaml
+    local pkg_file="$(_shellkit_source_dir)/.chezmoidata/packages.yaml"
+    if [[ -f "$pkg_file" ]]; then
+        local current_tier=""
+        while IFS= read -r line; do
+            [[ -z "$line" || "$line" =~ ^[[:space:]]*# ]] && continue
+            if [[ "$line" =~ ^[[:space:]]{2}([a-z_]+):$ ]]; then
+                current_tier="${match[1]}"
+            elif [[ "$line" =~ ^[[:space:]]+-[[:space:]]+([^#]+) ]]; then
+                local pkg="${match[1]%% *}"
+                local comment=""
+                [[ "$line" =~ '#'[[:space:]]*(.+)$ ]] && comment="${match[1]}"
+                _entries+=("$(printf "${cyan}[package]${reset}   ${green}%-24s${reset} ${dim}%s (%s)${reset}" "$pkg" "$comment" "$current_tier")")
+            fi
+        done < "$pkg_file"
+    fi
+
+    # Keybindings — tmux reference entries
+    local -a keybinds=(
+        "Ctrl-b d:Detach from tmux session"
+        "Ctrl-b c:Create new tmux window"
+        "Ctrl-b n / p:Next / previous tmux window"
+        "Ctrl-b %:Split tmux pane vertically"
+        'Ctrl-b ":Split tmux pane horizontally'
+        "Ctrl-b z:Toggle tmux pane zoom"
+        "Ctrl-b [:Enter tmux copy mode"
+        "Ctrl-b w:Pick tmux window from list"
+        "Ctrl-b s:Switch tmux sessions"
+        "Ctrl-b Space:Cycle tmux pane layouts"
+    )
+    if [[ "$TERM_PROGRAM" == "iTerm.app" ]]; then
+        keybinds+=(
+            "Cmd-D:Split pane vertically (iTerm2)"
+            "Cmd-Shift-D:Split pane horizontally (iTerm2)"
+        )
+    fi
+    for item in "${keybinds[@]}"; do
+        local kname="${item%%:*}" kdesc="${item#*:}"
+        _entries+=("$(printf "${cyan}[keybind]${reset}   ${green}%-24s${reset} ${dim}%s${reset}" "$kname" "$kdesc")")
+    done
+
+    # Reference page entries (clipshot, tmux aliases)
+    local -a refs=(
+        "tns <name>:Create a new named tmux session"
+        "ta:Attach to most recent tmux session"
+        "tls:List all tmux sessions"
+        "tks <name>:Kill a tmux session"
+        "tkill:Kill the entire tmux server"
+        "clipshot:First-time setup and start monitoring"
+        "clipshot start:Start clipboard monitoring"
+        "clipshot stop:Stop clipboard monitoring"
+        "clipshot status:Show running status and target"
+        "clipshot config:Modify remotes configuration"
+    )
+    if [[ "$TERM_PROGRAM" == "iTerm.app" ]]; then
+        refs+=(
+            "tcc:New tmux session in iTerm2 control mode"
+            "tcca:Attach tmux in iTerm2 control mode"
+        )
+    fi
+    for item in "${refs[@]}"; do
+        local rname="${item%%:*}" rdesc="${item#*:}"
+        _entries+=("$(printf "${cyan}[ref]${reset}       ${green}%-24s${reset} ${dim}%s${reset}" "$rname" "$rdesc")")
+    done
+}
+
+_shellkit_search() {
+    local query="${1:-}"
+    local entries=()
+    _shellkit_collect_search entries
+
+    if _shellkit_has_fzf; then
+        local preview='
+            line=$(echo {} | sed "s/\x1b\[[0-9;]*m//g")
+            cat="${line%%]*}"
+            cat="${cat#[}"
+            rest="${line#*] }"
+            rest="${rest#"${rest%%[! ]*}"}"
+            name="${rest%% *}"
+            case "$cat" in
+                alias)
+                    cmd="${rest#* }"
+                    cmd="${cmd#"${cmd%%[! ]*}"}"
+                    cmd="${cmd#\047}" ; cmd="${cmd%\047}"
+                    base="${cmd%% *}"
+                    echo "alias $name=$cmd"
+                    echo ""
+                    $base --help 2>&1 | head -30
+                    ;;
+                function)
+                    file="$HOME/.zsh/functions/$name"
+                    [[ -f "$file" ]] && cat "$file"
+                    ;;
+                command)
+                    zsh -c "source ~/.zsh/os-detect.zsh 2>/dev/null; fpath=(~/.zsh/functions \$fpath); autoload -Uz shellkit; shellkit ${rest#shellkit }" 2>/dev/null | head -40
+                    ;;
+                package)
+                    if command -v "$name" &>/dev/null; then
+                        echo "Installed: $(command -v $name)"
+                        $name --version 2>&1 | head -3
+                        echo ""
+                        $name --help 2>&1 | head -30
+                    else
+                        echo "$name is not installed"
+                    fi
+                    ;;
+                keybind|ref)
+                    echo "$rest"
+                    ;;
+            esac
+        '
+
+        local selected
+        selected=$(printf '%s\n' "${entries[@]}" | \
+            fzf --ansi --height=80% --layout=reverse --border \
+                --border-label=' shellkit search ' \
+                --prompt='search> ' \
+                --header=$'esc quit' \
+                --query="$query" \
+                --preview="$preview" \
+                --preview-window=right:50%:wrap)
+        [[ -z "$selected" ]] && return 0
+        echo ""
+        echo "  $selected"
+        echo ""
+    else
+        if [[ -n "$query" ]]; then
+            printf '%s\n' "${entries[@]}" | grep -i "$query"
+        else
+            printf '%s\n' "${entries[@]}"
+        fi
+    fi
+}
+
 _shellkit_help() {
     local version="$(_shellkit_version)"
     echo ""
@@ -692,6 +874,7 @@ _shellkit_help() {
     _shellkit_row "shellkit packages" "Show installed packages"
     _shellkit_row "shellkit tmux" "Tmux quick reference"
     _shellkit_row "shellkit clipshot" "Clipshot screenshot monitor reference"
+    _shellkit_row "shellkit search [query]" "Search all shellkit content"
     echo ""
     echo "${yellow}  Diagnostics:${reset}"
     _shellkit_row "shellkit info" "System info and tool versions"
@@ -717,6 +900,7 @@ case "$cmd" in
     packages)              _shellkit_packages ;;
     tmux)                  _shellkit_tmux ;;
     clipshot)              _shellkit_clipshot ;;
+    search|--search)       _shellkit_search "$@" ;;
     info)                  _shellkit_info ;;
     config)                _shellkit_config ;;
     doctor)                _shellkit_doctor ;;
