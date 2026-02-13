@@ -45,9 +45,13 @@ fi
 # Install chezmoi if needed
 if ! command -v chezmoi &>/dev/null; then
     echo "==> Installing chezmoi..."
-    mkdir -p "$HOME/.local/bin"
-    sh -c "$(curl -fsLS get.chezmoi.io)" -- -b "$HOME/.local/bin"
-    export PATH="$HOME/.local/bin:$PATH"
+    CHEZMOI_BIN="$HOME/.local/bin"
+    if ! mkdir -p "$CHEZMOI_BIN" 2>/dev/null; then
+        CHEZMOI_BIN="$HOME/bin"
+        mkdir -p "$CHEZMOI_BIN"
+    fi
+    sh -c "$(curl -fsLS get.chezmoi.io)" -- -b "$CHEZMOI_BIN"
+    export PATH="$CHEZMOI_BIN:$PATH"
 fi
 
 # Check for existing config
