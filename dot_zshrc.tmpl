@@ -16,8 +16,8 @@ fi
 # Zsh Options
 # ------------------------------------------------------------
 
-# History
-HISTFILE="${ZDOTDIR:-$HOME}/.zsh_history"
+# History — fully isolated per shell session
+HISTFILE="${ZDOTDIR:-$HOME}/.zsh_history.$$"
 HISTSIZE=50000
 SAVEHIST=50000
 
@@ -31,7 +31,18 @@ setopt HIST_REDUCE_BLANKS        # Remove superfluous blanks
 setopt HIST_VERIFY               # Don't execute immediately on history expansion
 setopt APPEND_HISTORY            # Append to history file (don't overwrite)
 setopt INC_APPEND_HISTORY        # Add commands immediately (for crash protection)
-# Note: SHARE_HISTORY is intentionally disabled - each terminal has its own session history
+
+# Merge session history into main file on exit, then clean up
+autoload -Uz add-zsh-hook
+_shellkit_merge_history() {
+    local main="${ZDOTDIR:-$HOME}/.zsh_history"
+    [[ -f "$HISTFILE" ]] || return 0
+    # Append session history to main file
+    fc -W "$HISTFILE"
+    cat "$HISTFILE" >> "$main" 2>/dev/null
+    rm -f "$HISTFILE"
+}
+add-zsh-hook zshexit _shellkit_merge_history
 
 # Directory navigation
 setopt AUTO_CD                   # cd by typing directory name
