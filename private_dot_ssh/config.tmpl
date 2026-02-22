@@ -46,6 +46,14 @@ Host gitlab.com
     IdentityFile ~/.ssh/{{ .identities.personal.sshKey }}
 
 # ============================================================
+# GitLab - Local (personal)
+# ============================================================
+Host gitlab.home.lan
+    HostName gitlab.home.lan
+    User git
+    IdentityFile ~/.ssh/{{ .identities.personal.sshKey }}
+
+# ============================================================
 # Bitbucket (personal)
 # ============================================================
 Host bitbucket.org
