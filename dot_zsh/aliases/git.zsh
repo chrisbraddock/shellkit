@@ -10,7 +10,7 @@
 
 alias gs='git status'
 alias gl='git log'
-alias glog='git log --oneline --graph --decorate'
+alias glog='git log --graph --pretty=format:"%C(yellow)%h%C(reset) %C(auto)%d%C(reset) %s %C(dim)(%cr) %C(blue)<%an>%C(reset)"'
 alias glg='git log --graph'
 alias gls='git log --stat'
 alias glp='git log --patch'
