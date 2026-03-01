@@ -2,6 +2,22 @@
 
 All notable changes to shellkit will be documented in this file.
 
+## [1.9.0] - 2026-03-01
+
+
+### Features
+
+- Add local GitLab server (gitlab.home.lan) SSH support
+- Support local SSH overrides via ~/.ssh/config.local (Include pattern)
+- Colorize glog alias with hash, refs, date, and author
+- Isolate shell history per session with merge on exit
+- Add unified search across all shellkit content
+
+
+### Bug Fixes
+
+- Fall back to ~/bin when ~/.local/bin is not writable
+- Create ~/.local/bin before chezmoi install
 ## [1.8.1] - 2026-02-11
 
 
