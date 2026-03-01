@@ -2,6 +2,10 @@
 # SSH Configuration
 # ============================================================
 # Managed by chezmoi - Multi-identity support
+# Local overrides: ~/.ssh/config.local (not managed by chezmoi)
+
+# Load local overrides first (first match wins in SSH config)
+Include config.local
 
 # Default settings for all hosts
 Host *
