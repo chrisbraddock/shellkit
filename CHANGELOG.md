@@ -2,6 +2,13 @@
 
 All notable changes to shellkit will be documented in this file.
 
+## [1.11.0] - 2026-03-03
+
+
+### Features
+
+- AI command prompt widget (Alt-A) — describe in English, get a shell command
+- Add terminalizer for terminal-to-GIF recording (npm package + search refs)
 ## [1.10.0] - 2026-03-03
 
 
