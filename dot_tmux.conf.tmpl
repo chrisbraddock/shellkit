@@ -1,0 +1,67 @@
+# ============================================================
+# tmux Configuration
+# ============================================================
+# Managed by shellkit (chezmoi)
+# Local overrides: ~/.tmux.conf.local
+
+# --- General ------------------------------------------------
+set -g default-terminal "tmux-256color"
+set -ga terminal-overrides ",xterm-256color:Tc"
+set -g mouse on
+set -g history-limit 200000
+set -g focus-events on
+set -g renumber-windows on
+set -g base-index 1
+setw -g pane-base-index 1
+set -sg escape-time 10
+setw -g mode-keys vi
+
+# --- Splits (| and - are more intuitive) --------------------
+bind | split-window -h -c "#{pane_current_path}"
+bind - split-window -v -c "#{pane_current_path}"
+
+# --- Pane navigation (vim-style) ----------------------------
+bind -r h select-pane -L
+bind -r j select-pane -D
+bind -r k select-pane -U
+bind -r l select-pane -R
+
+# --- Resize panes (Alt + vim keys) --------------------------
+bind -n M-h resize-pane -L 5
+bind -n M-j resize-pane -D 5
+bind -n M-k resize-pane -U 5
+bind -n M-l resize-pane -R 5
+
+# --- Clipboard ----------------------------------------------
+{{- if eq .os_type "macos" }}
+bind-key -T copy-mode-vi y send-keys -X copy-pipe-and-cancel "pbcopy"
+bind-key -T copy-mode-vi Enter send-keys -X copy-pipe-and-cancel "pbcopy"
+{{- else }}
+bind-key -T copy-mode-vi y send-keys -X copy-pipe-and-cancel "xclip -selection clipboard"
+bind-key -T copy-mode-vi Enter send-keys -X copy-pipe-and-cancel "xclip -selection clipboard"
+{{- end }}
+
+# --- Reload config ------------------------------------------
+bind r source-file ~/.tmux.conf \; display-message "tmux.conf reloaded"
+
+# --- Status line --------------------------------------------
+set -g status on
+set -g status-interval 2
+set -g status-left-length 50
+set -g status-right-length 100
+set -g status-left "#[fg=green]#S #[fg=white]| #[fg=cyan]#W "
+set -g status-right "#[fg=yellow]%Y-%m-%d #[fg=magenta]%H:%M"
+
+# --- TPM + Persistence Plugins -----------------------------
+set -g @plugin 'tmux-plugins/tpm'
+set -g @plugin 'tmux-plugins/tmux-resurrect'
+set -g @plugin 'tmux-plugins/tmux-continuum'
+
+set -g @continuum-restore 'on'
+set -g @continuum-save-interval '10'
+
+# --- Local overrides ----------------------------------------
+if-shell "[ -f ~/.tmux.conf.local ]" "source-file ~/.tmux.conf.local"
+
+# --- TPM init (must be at very bottom) ----------------------
+run '~/.tmux/plugins/tpm/tpm'

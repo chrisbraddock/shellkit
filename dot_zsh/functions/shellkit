@@ -614,10 +614,32 @@ _shellkit_tmux() {
         echo ""
     fi
 
+    echo "  ${yellow}Persistence${reset} ${dim}(tmux-resurrect + continuum)${reset}"
+    _shellkit_row "Ctrl-b Ctrl-s" "Save session (resurrect)"
+    _shellkit_row "Ctrl-b Ctrl-r" "Restore session (resurrect)"
+    echo "    ${dim}Continuum auto-saves every 10 min and restores on tmux start.${reset}"
+    echo ""
+
+    echo "  ${yellow}SSH + tmux${reset}"
+    _shellkit_row "sshx <host>" "SSH and auto-attach to tmux on remote"
+    _shellkit_row "sshx host -p 2222" "SSH on custom port with tmux attach"
+    echo ""
+
     echo "  ${yellow}Useful Commands${reset}"
     _shellkit_row "tmux info" "Show tmux server info"
-    _shellkit_row "tmux source ~/.tmux.conf" "Reload config"
+    _shellkit_row "tmux source ~/.tmux.conf" "Reload config (or: Ctrl-b r)"
     _shellkit_row "tkill" "Kill the entire tmux server"
+    echo ""
+
+    echo "  ${yellow}Auto-Attach${reset} ${dim}(opt-in)${reset}"
+    echo "    ${dim}Add to ~/.zshrc.local to auto-attach on shell start:${reset}"
+    echo ""
+    echo "    ${green}if command -v tmux &>/dev/null && [[ -z \"\$TMUX\" ]] && [[ -t 0 ]]; then${reset}"
+    echo "    ${green}    tmux new-session -A -s main${reset}"
+    echo "    ${green}fi${reset}"
+    echo ""
+    echo "    ${dim}Or set iTerm2 Profile → General → Command to:${reset}"
+    echo "    ${green}/bin/zsh -lc 'tmux new-session -A -s main'${reset}"
     echo ""
 }
 
@@ -746,6 +768,11 @@ _shellkit_collect_search() {
         "Ctrl-b w:Pick tmux window from list"
         "Ctrl-b s:Switch tmux sessions"
         "Ctrl-b Space:Cycle tmux pane layouts"
+        "Ctrl-b Ctrl-s:Save tmux session (resurrect)"
+        "Ctrl-b Ctrl-r:Restore tmux session (resurrect)"
+        "Ctrl-b |:Split pane vertically (shellkit)"
+        "Ctrl-b -:Split pane horizontally (shellkit)"
+        "Ctrl-b r:Reload tmux config (shellkit)"
     )
     if [[ "$TERM_PROGRAM" == "iTerm.app" ]]; then
         keybinds+=(
@@ -765,6 +792,7 @@ _shellkit_collect_search() {
         "tls:List all tmux sessions"
         "tks <name>:Kill a tmux session"
         "tkill:Kill the entire tmux server"
+        "sshx <host>:SSH with automatic tmux attach"
         "clipshot:First-time setup and start monitoring"
         "clipshot start:Start clipboard monitoring"
         "clipshot stop:Stop clipboard monitoring"

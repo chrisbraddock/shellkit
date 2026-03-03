@@ -1,0 +1,7 @@
+#!/usr/bin/env zsh
+# sshx - SSH with automatic tmux attach
+# Usage: sshx <host> [ssh-args...]
+
+local host="${1:?usage: sshx <host> [ssh-args...]}"
+shift
+ssh "$host" "$@" -t "tmux new-session -A -s main"
