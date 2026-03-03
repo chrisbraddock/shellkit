@@ -205,6 +205,11 @@ fi
 if command -v claude &>/dev/null; then
     source "${ZDOTDIR:-$HOME}/.zsh/ai-prompt.zsh"
 fi
+
+# Pet snippet manager (Ctrl-S: search and insert snippets)
+if command -v pet &>/dev/null; then
+    source "${ZDOTDIR:-$HOME}/.zsh/pet-select.zsh"
+fi
 {{- end }}
 
 # ------------------------------------------------------------

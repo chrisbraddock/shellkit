@@ -788,6 +788,7 @@ _shellkit_collect_search() {
         "Ctrl-b -:Split pane horizontally (shellkit)"
         "Ctrl-b r:Reload tmux config (shellkit)"
         "Alt-A:AI command prompt (describe in English, get shell command)"
+        "Ctrl-S:Search and insert pet snippets"
     )
     if [[ "$TERM_PROGRAM" == "iTerm.app" ]]; then
         keybinds+=(
@@ -817,6 +818,12 @@ _shellkit_collect_search() {
         "terminalizer play:Play back a recording in terminal"
         "terminalizer render:Render recording to animated GIF"
         "terminalizer config:Generate default config file"
+        "pet new:Save a new snippet"
+        "pet search:Search snippets interactively"
+        "pet exec:Run a snippet directly"
+        "pet edit:Edit snippet file (TOML)"
+        "pet list:List all saved snippets"
+        "pet sync:Sync snippets with Gist/GitLab"
     )
     if [[ "$TERM_PROGRAM" == "iTerm.app" ]]; then
         refs+=(
