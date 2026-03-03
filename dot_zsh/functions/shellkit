@@ -787,6 +787,7 @@ _shellkit_collect_search() {
         "Ctrl-b |:Split pane vertically (shellkit)"
         "Ctrl-b -:Split pane horizontally (shellkit)"
         "Ctrl-b r:Reload tmux config (shellkit)"
+        "Alt-A:AI command prompt (describe in English, get shell command)"
     )
     if [[ "$TERM_PROGRAM" == "iTerm.app" ]]; then
         keybinds+=(

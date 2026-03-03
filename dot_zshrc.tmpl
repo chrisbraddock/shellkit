@@ -200,6 +200,13 @@ if (( ${+widgets[history-substring-search-up]} )); then
     bindkey '^[[B' history-substring-search-down
 fi
 
+{{- if eq .profile "full" }}
+# AI command prompt (Alt-A: describe in English, get shell command)
+if command -v claude &>/dev/null; then
+    source "${ZDOTDIR:-$HOME}/.zsh/ai-prompt.zsh"
+fi
+{{- end }}
+
 # ------------------------------------------------------------
 # Powerlevel10k Configuration (must be at end)
 # ------------------------------------------------------------
