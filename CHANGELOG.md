@@ -2,6 +2,21 @@
 
 All notable changes to shellkit will be documented in this file.
 
+## [1.10.0] - 2026-03-03
+
+
+### Features
+
+- Add managed tmux.conf with TPM, resurrect, continuum, and vim-style nav
+- Add sshx function for SSH with automatic tmux attach on remote
+- Add pbcopy/pbpaste shims for Linux (xclip) and WSL (clip.exe)
+- OS-aware clipboard integration in tmux (pbcopy on macOS, xclip on Linux)
+- Local tmux overrides via ~/.tmux.conf.local
+
+
+### Documentation
+
+- Update shellkit tmux TUI page with setup, shellkit bindings, and persistence
 ## [1.9.0] - 2026-03-01
 
 
