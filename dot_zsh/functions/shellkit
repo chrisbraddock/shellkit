@@ -812,6 +812,10 @@ _shellkit_collect_search() {
         "clipshot stop:Stop clipboard monitoring"
         "clipshot status:Show running status and target"
         "clipshot config:Modify remotes configuration"
+        "terminalizer record:Record a terminal session to file"
+        "terminalizer play:Play back a recording in terminal"
+        "terminalizer render:Render recording to animated GIF"
+        "terminalizer config:Generate default config file"
     )
     if [[ "$TERM_PROGRAM" == "iTerm.app" ]]; then
         refs+=(

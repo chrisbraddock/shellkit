@@ -32,7 +32,8 @@ packages:
 
   # NPM global packages (installed via npm install -g)
   npm:
-    - clipshot     # Screenshot monitor for remote AI coding
+    - clipshot       # Screenshot monitor for remote AI coding
+    - terminalizer   # Record terminal sessions as animated GIFs
 
   # Pip packages (installed via pipx)
   pip:
