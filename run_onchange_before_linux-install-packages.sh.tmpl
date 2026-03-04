@@ -36,6 +36,14 @@ if command -v brew >/dev/null 2>&1; then
 {{- end }}
 fi
 
+# pet snippet manager (uses tap, not in apt)
+if ! command -v pet >/dev/null 2>&1; then
+  if command -v brew >/dev/null 2>&1; then
+    echo "==> Installing pet snippet manager..."
+    brew install knqyf263/pet/pet || true
+  fi
+fi
+
 # Pip packages via pipx
 if command -v pipx &>/dev/null; then
   echo "==> Installing pip packages via pipx..."

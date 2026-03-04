@@ -24,7 +24,6 @@ packages:
     - git-lfs
     - git-cliff    # Changelog generator
     - pipx         # Python package manager for CLI tools
-    - pet          # CLI snippet manager with fzf search
 
   # Tier 4: System monitoring
   monitoring:
@@ -80,4 +79,3 @@ packages:
       - atuin                # Shell history, not in apt
       - eza                  # Modern ls replacement, not in apt
       - git-delta            # Git diff viewer, not in apt
-      - pet                  # CLI snippet manager, not in apt

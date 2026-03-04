@@ -32,6 +32,12 @@ cask {{ . | quote }}
 {{- end }}
 EOF
 
+# pet snippet manager (uses tap, not in core homebrew)
+if ! command -v pet >/dev/null 2>&1; then
+  echo "==> Installing pet snippet manager..."
+  brew install knqyf263/pet/pet || true
+fi
+
 # FZF post-install (keybindings)
 if [[ -f "$(brew --prefix)/opt/fzf/install" ]]; then
   "$(brew --prefix)/opt/fzf/install" --key-bindings --completion --no-update-rc --no-bash --no-fish 2>/dev/null || true
