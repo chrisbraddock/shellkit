@@ -18,5 +18,5 @@
 *.local.md
 
 # Go build artifacts
-shellkit-tui
+/shellkit-tui
 dist/
