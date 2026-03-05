@@ -152,8 +152,10 @@ _shellkit_reload_shell() {
 
 _shellkit_update() {
     echo "${bold}==> Updating shellkit...${reset}"
+    echo "==> Pulling latest from remote..."
     chezmoi update --apply=false || { echo "${red}==> Pull failed${reset}"; return 1; }
     _shellkit_protect_zshrc || { echo "==> Aborted."; return 0; }
+    echo "==> Applying configuration..."
     chezmoi apply
     _shellkit_reload_shell
     echo "${green}==> Done.${reset} Changes are live."
