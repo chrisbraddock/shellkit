@@ -8,6 +8,8 @@ Shellkit is a cross-platform Zsh configuration system managed with [chezmoi](htt
 
 ```
 shellkit/
+├── cmd/shellkit-tui/     # Go TUI binary entry point
+├── internal/             # Go TUI internals (app, data, ui, config)
 ├── dot_zsh/              # Zsh configuration
 │   ├── aliases/          # Git, system, and tool aliases
 │   ├── functions/        # Shell utilities (shellkit, mon, secrets, etc.)
@@ -18,6 +20,8 @@ shellkit/
 ├── private_dot_ssh/      # SSH configuration templates
 ├── iterm2/               # iTerm2 Python API scripts (deployed via run script)
 ├── .chezmoidata/         # Package definitions (packages.yaml)
+├── .github/workflows/    # CI/CD (GoReleaser on tag push)
+├── .goreleaser.yml       # Multi-platform binary build config
 └── run_*.sh.tmpl         # Bootstrap and install scripts
 ```
 
@@ -42,6 +46,21 @@ chezmoi edit <file>        # Edit a managed file
 shellkit update            # Pull latest and apply
 shellkit diff              # Alias for chezmoi diff
 ```
+
+## Go TUI Binary
+
+The interactive `shellkit` TUI is built with Go using the Charm stack (Bubble Tea, Bubbles, Lip Gloss, Glamour).
+
+```bash
+go build ./cmd/shellkit-tui                    # Build locally
+go run ./cmd/shellkit-tui                      # Run without building
+goreleaser build --snapshot --clean            # Test multi-platform build
+```
+
+- Source: `cmd/shellkit-tui/` (entry point) + `internal/` (app, data, ui, config)
+- CI/CD: GoReleaser builds 4 binaries on tag push (linux/darwin × amd64/arm64)
+- The zsh `shellkit` function auto-detects `shellkit-tui` and delegates to it
+- Falls back to fzf TUI if the binary isn't available
 
 ## Testing Changes
 

@@ -68,6 +68,28 @@ else
     chezmoi init --apply "$REPO"
 fi
 
+# Install shellkit-tui binary
+echo "==> Installing shellkit TUI..."
+TUI_OS=$(uname -s | tr '[:upper:]' '[:lower:]')
+TUI_ARCH=$(uname -m)
+[[ "$TUI_ARCH" == "x86_64" ]] && TUI_ARCH="amd64"
+[[ "$TUI_ARCH" == "aarch64" ]] && TUI_ARCH="arm64"
+
+TUI_BIN="${CHEZMOI_BIN:-$HOME/.local/bin}"
+mkdir -p "$TUI_BIN"
+
+if TUI_TAG=$(curl -fsSL "https://api.github.com/repos/$REPO/releases/latest" 2>/dev/null | grep '"tag_name"' | head -1 | cut -d'"' -f4); then
+    TUI_URL="https://github.com/$REPO/releases/download/${TUI_TAG}/shellkit-tui_${TUI_OS}_${TUI_ARCH}"
+    if curl -fsSL "$TUI_URL" -o "$TUI_BIN/shellkit-tui" 2>/dev/null; then
+        chmod +x "$TUI_BIN/shellkit-tui"
+        echo "    shellkit-tui installed to $TUI_BIN/shellkit-tui"
+    else
+        echo "    shellkit-tui binary not available for ${TUI_OS}/${TUI_ARCH} (using fzf TUI)"
+    fi
+else
+    echo "    No releases found yet (using fzf TUI)"
+fi
+
 echo ""
 echo "==> shellkit installed successfully!"
 echo "    Start a new shell to use your updated config."

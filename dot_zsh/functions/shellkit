@@ -97,6 +97,12 @@ _shellkit_protect_zshrc() {
 # ── Subcommands ──────────────────────────────────────────────────────────────
 
 _shellkit_interactive() {
+    # Use Go TUI binary if available
+    if command -v shellkit-tui &>/dev/null; then
+        shellkit-tui
+        return $?
+    fi
+
     if ! _shellkit_has_fzf; then
         _shellkit_help
         return

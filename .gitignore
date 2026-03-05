@@ -16,3 +16,7 @@
 .bluera/bluera-knowledge/*
 # Claude Code local files (not committed)
 *.local.md
+
+# Go build artifacts
+shellkit-tui
+dist/

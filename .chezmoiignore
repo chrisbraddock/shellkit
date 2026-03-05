@@ -38,6 +38,14 @@ CHANGELOG.md
 *.log
 *.tmp
 
+# Go source (TUI binary built separately)
+cmd/
+internal/
+go.mod
+go.sum
+.goreleaser.yml
+shellkit-tui
+
 # Local customization files (machine-specific, not synced)
 .zshrc.local
 

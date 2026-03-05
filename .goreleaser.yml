@@ -1,0 +1,31 @@
+version: 2
+
+builds:
+  - id: shellkit-tui
+    main: ./cmd/shellkit-tui
+    binary: shellkit-tui
+    env:
+      - CGO_ENABLED=0
+    goos:
+      - linux
+      - darwin
+    goarch:
+      - amd64
+      - arm64
+    ldflags:
+      - -s -w
+      - -X main.version={{.Version}}
+      - -X main.commit={{.ShortCommit}}
+
+archives:
+  - formats: [binary]
+    name_template: "shellkit-tui_{{ .Os }}_{{ .Arch }}"
+
+checksum:
+  name_template: "checksums.txt"
+
+release:
+  github:
+    owner: chrisbraddock
+    name: shellkit
+  prerelease: auto
