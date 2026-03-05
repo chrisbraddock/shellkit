@@ -257,14 +257,16 @@ func (m Model) View() tea.View {
 		}
 	}
 	tabBar := lipgloss.JoinHorizontal(lipgloss.Bottom, tabs...)
-
-	// Fill remaining width with a subtle bottom border
-	tabBarWidth := lipgloss.Width(tabBar)
-	if gap := m.width - tabBarWidth - 4; gap > 0 {
-		tabBar += m.styles.TabBar.Render(strings.Repeat(" ", gap))
-	}
 	doc.WriteString(tabBar)
 	doc.WriteString("\n")
+
+	// Single separator line
+	sepWidth := m.width - 2 // account for doc padding
+	if sepWidth > 0 {
+		sep := lipgloss.NewStyle().Foreground(m.styles.SubtleColor).Render(strings.Repeat("─", sepWidth))
+		doc.WriteString(sep)
+		doc.WriteString("\n")
+	}
 
 	// Tab content
 	var content string
