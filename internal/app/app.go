@@ -33,6 +33,11 @@ var tabNames = []string{
 	"Doctor",
 }
 
+// Messages for async data loading
+type packagesLoadedMsg struct{ pkgs []data.Package }
+type sysInfoLoadedMsg struct{ info data.SystemInfo }
+type doctorLoadedMsg struct{}
+
 // Model is the root Bubble Tea model.
 type Model struct {
 	cfg       config.Config
@@ -50,36 +55,61 @@ type Model struct {
 	search    ui.SearchTab
 	info      ui.InfoTab
 	doctor    ui.DoctorTab
+
+	// Track lazy-loaded data
+	allAliases    []data.Alias
+	allFuncs      []data.Function
+	allKeybindings []data.Keybinding
 }
 
-// New creates the initial application model.
+// New creates the initial application model with fast-loading data only.
 func New() Model {
 	cfg := config.Detect()
 	styles := ui.NewStyles(true) // assume dark until detected
 
-	// Load data
+	// Fast: file parsing only, no subprocesses
 	aliases, _ := data.LoadAliases(cfg.AliasDir)
 	funcs, _ := data.LoadFunctions(cfg.FunctionDir)
-	pkgs, _ := data.LoadPackages(cfg.ChezmoiSrc, cfg.OS)
 	keybindings := data.LoadKeybindings()
-	sysInfo := data.LoadSystemInfo()
 
 	return Model{
-		cfg:       cfg,
-		styles:    styles,
-		isDark:    true,
-		aliases:   ui.NewAliasTab(aliases, styles),
-		functions: ui.NewFunctionTab(funcs, styles),
-		packages:  ui.NewPackageTab(pkgs, styles),
-		tmux:      ui.NewTmuxTab(styles),
-		search:    ui.NewSearchTab(aliases, funcs, pkgs, keybindings, styles),
-		info:      ui.NewInfoTab(sysInfo, cfg.Version, styles),
-		doctor:    ui.NewDoctorTab(cfg, styles),
+		cfg:            cfg,
+		styles:         styles,
+		isDark:         true,
+		aliases:        ui.NewAliasTab(aliases, styles),
+		functions:      ui.NewFunctionTab(funcs, styles),
+		packages:       ui.NewPackageTab(nil, styles), // loaded async
+		tmux:           ui.NewTmuxTab(styles),
+		search:         ui.NewSearchTab(aliases, funcs, nil, keybindings, styles),
+		info:           ui.NewInfoTab(data.SystemInfo{}, cfg.Version, styles), // loaded async
+		doctor:         ui.NewDoctorTab(cfg, styles),
+		allAliases:     aliases,
+		allFuncs:       funcs,
+		allKeybindings: keybindings,
 	}
 }
 
 func (m Model) Init() tea.Cmd {
-	return tea.RequestBackgroundColor
+	return tea.Batch(
+		tea.RequestBackgroundColor,
+		m.loadPackagesAsync(),
+		m.loadSysInfoAsync(),
+	)
+}
+
+func (m Model) loadPackagesAsync() tea.Cmd {
+	cfg := m.cfg
+	return func() tea.Msg {
+		pkgs, _ := data.LoadPackages(cfg.ChezmoiSrc, cfg.OS)
+		return packagesLoadedMsg{pkgs: pkgs}
+	}
+}
+
+func (m Model) loadSysInfoAsync() tea.Cmd {
+	return func() tea.Msg {
+		info := data.LoadSystemInfo()
+		return sysInfoLoadedMsg{info: info}
+	}
 }
 
 func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
@@ -97,6 +127,28 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		m.doctor.SetStyles(m.styles)
 		return m, nil
 
+	case packagesLoadedMsg:
+		m.packages = ui.NewPackageTab(msg.pkgs, m.styles)
+		m.search = ui.NewSearchTab(m.allAliases, m.allFuncs, msg.pkgs, m.allKeybindings, m.styles)
+		if m.width > 0 {
+			h, v := m.styles.Doc.GetFrameSize()
+			contentW := m.width - h
+			contentH := m.height - v - 4
+			m.packages.SetSize(contentW, contentH)
+			m.search.SetSize(contentW, contentH)
+		}
+		return m, nil
+
+	case sysInfoLoadedMsg:
+		m.info = ui.NewInfoTab(msg.info, m.cfg.Version, m.styles)
+		if m.width > 0 {
+			h, v := m.styles.Doc.GetFrameSize()
+			contentW := m.width - h
+			contentH := m.height - v - 4
+			m.info.SetSize(contentW, contentH)
+		}
+		return m, nil
+
 	case tea.WindowSizeMsg:
 		m.width = msg.Width
 		m.height = msg.Height
@@ -105,7 +157,7 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		// Calculate content area
 		h, v := m.styles.Doc.GetFrameSize()
 		contentW := msg.Width - h
-		contentH := msg.Height - v - 5 // tab bar + help bar
+		contentH := msg.Height - v - 4 // tab bar + help bar
 
 		m.aliases.SetSize(contentW, contentH)
 		m.functions.SetSize(contentW, contentH)
@@ -185,8 +237,6 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 }
 
 func (m Model) isFiltering() bool {
-	// Check if any list-based tab is in filtering mode
-	// This is a simplified check — we only care about the active tab
 	return false // Lists handle their own key routing when filtering
 }
 
@@ -206,12 +256,12 @@ func (m Model) View() tea.View {
 			tabs = append(tabs, m.styles.InactiveTab.Render(name))
 		}
 	}
-	tabBar := lipgloss.JoinHorizontal(lipgloss.Top, tabs...)
+	tabBar := lipgloss.JoinHorizontal(lipgloss.Bottom, tabs...)
 
-	// Fill remaining width with gap
+	// Fill remaining width with a subtle bottom border
 	tabBarWidth := lipgloss.Width(tabBar)
 	if gap := m.width - tabBarWidth - 4; gap > 0 {
-		tabBar += m.styles.TabGap.Render(strings.Repeat(" ", gap))
+		tabBar += m.styles.TabBar.Render(strings.Repeat(" ", gap))
 	}
 	doc.WriteString(tabBar)
 	doc.WriteString("\n")

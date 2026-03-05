@@ -2,7 +2,6 @@ package config
 
 import (
 	"os"
-	"os/exec"
 	"path/filepath"
 	"runtime"
 	"strings"
@@ -21,6 +20,7 @@ type Config struct {
 }
 
 // Detect builds a Config by inspecting the environment.
+// Avoids shelling out to keep startup fast.
 func Detect() Config {
 	home, _ := os.UserHomeDir()
 
@@ -33,12 +33,18 @@ func Detect() Config {
 		Arch:        runtime.GOARCH,
 	}
 
-	// Detect chezmoi source path
-	if out, err := exec.Command("chezmoi", "source-path").Output(); err == nil {
-		c.ChezmoiSrc = strings.TrimSpace(string(out))
+	// Try standard chezmoi source paths (avoids shelling out)
+	for _, candidate := range []string{
+		filepath.Join(home, ".local", "share", "chezmoi"),
+		filepath.Join(home, ".config", "share", "chezmoi"),
+	} {
+		if _, err := os.Stat(candidate); err == nil {
+			c.ChezmoiSrc = candidate
+			break
+		}
 	}
 
-	// Read version from chezmoi source
+	// Read version
 	if c.ChezmoiSrc != "" {
 		if data, err := os.ReadFile(filepath.Join(c.ChezmoiSrc, "VERSION")); err == nil {
 			c.Version = strings.TrimSpace(string(data))

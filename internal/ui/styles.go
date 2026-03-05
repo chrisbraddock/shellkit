@@ -9,7 +9,7 @@ type Styles struct {
 	Doc         lipgloss.Style
 	ActiveTab   lipgloss.Style
 	InactiveTab lipgloss.Style
-	TabGap      lipgloss.Style
+	TabBar      lipgloss.Style
 	TabContent  lipgloss.Style
 	Title       lipgloss.Style
 	Subtle      lipgloss.Style
@@ -19,7 +19,7 @@ type Styles struct {
 	HelpBar     lipgloss.Style
 	Category    lipgloss.Style
 	Preview     lipgloss.Style
-	IsDark      bool
+	IsDark bool
 }
 
 // NewStyles creates a style set based on terminal background.
@@ -30,41 +30,37 @@ func NewStyles(isDark bool) *Styles {
 	subtle := lightDark(lipgloss.Color("#555555"), lipgloss.Color("#666666"))
 	text := lightDark(lipgloss.Color("#1a1a1a"), lipgloss.Color("#FAFAFA"))
 
-	activeTabBorder := lipgloss.RoundedBorder()
-	activeTabBorder.BottomLeft = "│"
-	activeTabBorder.Bottom = " "
-	activeTabBorder.BottomRight = "│"
-
-	inactiveTabBorder := lipgloss.RoundedBorder()
-	inactiveTabBorder.BottomLeft = "┴"
-	inactiveTabBorder.Bottom = "─"
-	inactiveTabBorder.BottomRight = "┴"
-
-	tabGapBorder := lipgloss.Border{Bottom: "─", BottomLeft: "─", BottomRight: "─"}
-
-	s := &Styles{IsDark: isDark}
+	s := &Styles{
+		IsDark: isDark,
+	}
 
 	s.Doc = lipgloss.NewStyle().Padding(0, 1)
 
+	// Active tab: bold with accent color, bottom border in accent
 	s.ActiveTab = lipgloss.NewStyle().
-		Border(activeTabBorder, true).
-		BorderForeground(accent).
-		Foreground(text).
+		Foreground(accent).
 		Bold(true).
-		Padding(0, 2)
+		Padding(0, 2).
+		BorderBottom(true).
+		BorderStyle(lipgloss.ThickBorder()).
+		BorderForeground(accent)
 
+	// Inactive tab: subtle, thin bottom border
 	s.InactiveTab = lipgloss.NewStyle().
-		Border(inactiveTabBorder, true).
-		BorderForeground(subtle).
 		Foreground(subtle).
-		Padding(0, 2)
+		Padding(0, 2).
+		BorderBottom(true).
+		BorderStyle(lipgloss.NormalBorder()).
+		BorderForeground(subtle)
 
-	s.TabGap = lipgloss.NewStyle().
-		Border(tabGapBorder, false, false, true, false).
+	// Tab bar bottom line fills remaining width
+	s.TabBar = lipgloss.NewStyle().
+		BorderBottom(true).
+		BorderStyle(lipgloss.NormalBorder()).
 		BorderForeground(subtle)
 
 	s.TabContent = lipgloss.NewStyle().
-		Padding(1, 2)
+		Padding(1, 0)
 
 	s.Title = lipgloss.NewStyle().
 		Bold(true).
@@ -78,14 +74,14 @@ func NewStyles(isDark bool) *Styles {
 		Bold(true)
 
 	s.StatusOK = lipgloss.NewStyle().
+		Foreground(text).
 		Foreground(lightDark(lipgloss.Color("#0a6e0a"), lipgloss.Color("#73F59F")))
 
 	s.StatusFail = lipgloss.NewStyle().
 		Foreground(lightDark(lipgloss.Color("#a00"), lipgloss.Color("#FF6B6B")))
 
 	s.HelpBar = lipgloss.NewStyle().
-		Foreground(subtle).
-		Padding(1, 0, 0, 0)
+		Foreground(subtle)
 
 	s.Category = lipgloss.NewStyle().
 		Foreground(lightDark(lipgloss.Color("#0a6e0a"), lipgloss.Color("#73F59F"))).
