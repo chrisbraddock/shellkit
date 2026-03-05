@@ -157,8 +157,52 @@ _shellkit_update() {
     _shellkit_protect_zshrc || { echo "==> Aborted."; return 0; }
     echo "==> Applying configuration..."
     chezmoi apply
+    _shellkit_update_tui_binary
     _shellkit_reload_shell
     echo "${green}==> Done.${reset} Changes are live."
+}
+
+_shellkit_update_tui_binary() {
+    local repo="chrisbraddock/shellkit"
+    local bin_dir="${HOME}/.local/bin"
+    local bin_path="${bin_dir}/shellkit-tui"
+
+    # Get installed version (if any)
+    local installed_ver=""
+    if [[ -x "$bin_path" ]]; then
+        installed_ver=$("$bin_path" --version 2>/dev/null | awk '{print $2}')
+    fi
+
+    # Get latest release version
+    local latest_ver=""
+    latest_ver=$(curl -fsSL "https://api.github.com/repos/${repo}/releases/latest" 2>/dev/null \
+        | grep '"tag_name"' | head -1 | cut -d'"' -f4 | sed 's/^v//')
+
+    if [[ -z "$latest_ver" ]]; then
+        return 0  # no releases yet, skip silently
+    fi
+
+    # Skip if already current
+    if [[ "$installed_ver" == "$latest_ver" ]]; then
+        return 0
+    fi
+
+    echo "==> Updating shellkit-tui (${installed_ver:-none} → ${latest_ver})..."
+    local os=$(uname -s | tr '[:upper:]' '[:lower:]')
+    local arch=$(uname -m)
+    [[ "$arch" == "x86_64" ]] && arch="amd64"
+    [[ "$arch" == "aarch64" ]] && arch="arm64"
+
+    mkdir -p "$bin_dir"
+    local url="https://github.com/${repo}/releases/download/v${latest_ver}/shellkit-tui_${os}_${arch}"
+    if curl -fsSL "$url" -o "${bin_path}.tmp" 2>/dev/null; then
+        mv "${bin_path}.tmp" "$bin_path"
+        chmod +x "$bin_path"
+        echo "    shellkit-tui ${latest_ver} installed"
+    else
+        rm -f "${bin_path}.tmp"
+        echo "    ${dim}shellkit-tui binary not available for ${os}/${arch}${reset}"
+    fi
 }
 
 _shellkit_apply() {
