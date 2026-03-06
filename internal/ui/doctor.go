@@ -7,8 +7,10 @@ import (
 	"path/filepath"
 	"strings"
 
+	"charm.land/bubbles/v2/progress"
 	"charm.land/bubbles/v2/viewport"
 	tea "charm.land/bubbletea/v2"
+	"charm.land/lipgloss/v2"
 
 	"github.com/chrisbraddock/shellkit/internal/config"
 )
@@ -20,6 +22,8 @@ type DoctorTab struct {
 	width    int
 	height   int
 	styles   *Styles
+	passed   int
+	total    int
 }
 
 // NewDoctorTab creates the doctor tab.
@@ -45,6 +49,7 @@ func (t *DoctorTab) SetSize(w, h int) {
 	t.height = h
 	t.viewport.SetWidth(w)
 	t.viewport.SetHeight(h)
+	t.runChecks()
 }
 
 func (t *DoctorTab) Update(msg tea.Msg) tea.Cmd {
@@ -57,23 +62,32 @@ func (t *DoctorTab) View() string {
 	return t.viewport.View()
 }
 
+// Summary returns a short summary string for the status bar.
+func (t *DoctorTab) Summary() string {
+	if t.total == 0 {
+		return ""
+	}
+	return fmt.Sprintf("%d/%d passing", t.passed, t.total)
+}
+
 type check struct {
 	name   string
 	passed bool
 	detail string
+	hint   string
 }
 
 func (t *DoctorTab) runChecks() {
 	var checks []check
 
 	// Core tools
-	for _, tool := range []struct{ name, cmd string }{
-		{"chezmoi", "chezmoi"},
-		{"zsh", "zsh"},
-		{"git", "git"},
-		{"fzf", "fzf"},
-		{"tmux", "tmux"},
-		{"neovim", "nvim"},
+	for _, tool := range []struct{ name, cmd, hint string }{
+		{"chezmoi", "chezmoi", "brew install chezmoi"},
+		{"zsh", "zsh", ""},
+		{"git", "git", "brew install git"},
+		{"fzf", "fzf", "brew install fzf"},
+		{"tmux", "tmux", "brew install tmux"},
+		{"neovim", "nvim", "brew install neovim"},
 	} {
 		_, err := exec.LookPath(tool.cmd)
 		checks = append(checks, check{
@@ -85,6 +99,7 @@ func (t *DoctorTab) runChecks() {
 				}
 				return "not found"
 			}(),
+			hint: tool.hint,
 		})
 	}
 
@@ -146,25 +161,80 @@ func (t *DoctorTab) runChecks() {
 			if tpmErr == nil {
 				return "installed"
 			}
-			return "run: Ctrl-b I in tmux"
+			return "not found"
 		}(),
+		hint: "run: Ctrl-b I in tmux",
 	})
+
+	// Count passed/total
+	t.passed = 0
+	t.total = len(checks)
+	for _, c := range checks {
+		if c.passed {
+			t.passed++
+		}
+	}
 
 	// Render
 	var b strings.Builder
-	b.WriteString(t.styles.Title.Render("  Health Check"))
+
+	// Progress bar header
+	pct := 0.0
+	if t.total > 0 {
+		pct = float64(t.passed) / float64(t.total)
+	}
+
+	headerLine := t.styles.Title.Render("  Health Check")
+	statsText := t.styles.StatsBadge.Render(fmt.Sprintf("%d/%d passing", t.passed, t.total))
+
+	barWidth := t.width - 4
+	if barWidth < 20 {
+		barWidth = 40
+	}
+
+	// Title + stats on same line
+	titleWidth := lipgloss.Width(headerLine)
+	statsWidth := lipgloss.Width(statsText)
+	gap := barWidth - titleWidth - statsWidth
+	if gap < 1 {
+		gap = 1
+	}
+	b.WriteString(headerLine)
+	b.WriteString(strings.Repeat(" ", gap))
+	b.WriteString(statsText)
+	b.WriteString("\n")
+
+	// Progress bar using bubbles progress
+	progressBar := progress.New(
+		progress.WithColors(
+			lipgloss.Color("#FF6B6B"), // red
+			lipgloss.Color("#FFD93D"), // yellow
+			lipgloss.Color("#73F59F"), // green
+		),
+		progress.WithWidth(barWidth),
+		progress.WithoutPercentage(),
+	)
+	b.WriteString("  ")
+	b.WriteString(progressBar.ViewAs(pct))
 	b.WriteString("\n\n")
 
+	// Individual checks
 	for _, c := range checks {
 		status := t.styles.StatusOK.Render("  ✓")
 		if !c.passed {
 			status = t.styles.StatusFail.Render("  ✗")
 		}
-		b.WriteString(fmt.Sprintf("%s  %-20s %s\n",
-			status,
-			c.name,
-			t.styles.Subtle.Render(c.detail),
-		))
+
+		detail := t.styles.Subtle.Render(c.detail)
+		line := fmt.Sprintf("%s  %-20s %s", status, c.name, detail)
+
+		// Show remediation hint for failed checks
+		if !c.passed && c.hint != "" {
+			line += t.styles.Warning.Render(" — " + c.hint)
+		}
+
+		b.WriteString(line)
+		b.WriteString("\n")
 	}
 
 	t.viewport.SetContent(b.String())

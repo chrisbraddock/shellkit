@@ -133,11 +133,19 @@ func (t *FunctionTab) View() string {
 
 	listView := t.list.View()
 
-	previewStyle := t.styles.Preview.
-		Width(t.width - lipgloss.Width(listView) - 5).
-		Height(t.height - 2)
+	previewWidth := t.width - lipgloss.Width(listView) - 5
+	previewHeight := t.height - 2
 
-	previewView := previewStyle.Render(t.preview.View())
+	// Bordered preview section
+	previewStyle := lipgloss.NewStyle().
+		Border(lipgloss.RoundedBorder()).
+		BorderForeground(t.styles.SubtleColor).
+		Padding(0, 1).
+		Width(previewWidth).
+		Height(previewHeight)
+
+	previewContent := t.preview.View()
+	previewView := previewStyle.Render(previewContent)
 
 	return lipgloss.JoinHorizontal(lipgloss.Top, listView, " ", previewView)
 }

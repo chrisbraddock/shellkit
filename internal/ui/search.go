@@ -13,11 +13,35 @@ type searchItem struct {
 	category string
 	name     string
 	desc     string
+	styles   *Styles
 }
 
-func (i searchItem) Title() string       { return fmt.Sprintf("[%s]  %s", i.category, i.name) }
+func (i searchItem) Title() string {
+	badge := i.categoryBadge()
+	return fmt.Sprintf("%s  %s", badge, i.name)
+}
+
 func (i searchItem) Description() string { return i.desc }
 func (i searchItem) FilterValue() string { return i.name + " " + i.desc + " " + i.category }
+
+func (i searchItem) categoryBadge() string {
+	if i.styles == nil {
+		return fmt.Sprintf("[%s]", i.category)
+	}
+	label := fmt.Sprintf("[%s]", i.category)
+	switch i.category {
+	case "alias":
+		return i.styles.CategoryAlias.Render(label)
+	case "function":
+		return i.styles.CategoryFunction.Render(label)
+	case "package":
+		return i.styles.CategoryPackage.Render(label)
+	case "keybind":
+		return i.styles.CategoryKeybind.Render(label)
+	default:
+		return label
+	}
+}
 
 // SearchTab provides unified search across all shellkit content.
 type SearchTab struct {
@@ -40,6 +64,7 @@ func NewSearchTab(aliases []data.Alias, funcs []data.Function, pkgs []data.Packa
 			category: "alias",
 			name:     a.Name,
 			desc:     desc,
+			styles:   styles,
 		})
 	}
 
@@ -48,6 +73,7 @@ func NewSearchTab(aliases []data.Alias, funcs []data.Function, pkgs []data.Packa
 			category: "function",
 			name:     f.Name,
 			desc:     f.Description,
+			styles:   styles,
 		})
 	}
 
@@ -60,6 +86,7 @@ func NewSearchTab(aliases []data.Alias, funcs []data.Function, pkgs []data.Packa
 			category: "package",
 			name:     p.Name,
 			desc:     desc,
+			styles:   styles,
 		})
 	}
 
@@ -68,6 +95,7 @@ func NewSearchTab(aliases []data.Alias, funcs []data.Function, pkgs []data.Packa
 			category: "keybind",
 			name:     kb.Key,
 			desc:     kb.Description,
+			styles:   styles,
 		})
 	}
 

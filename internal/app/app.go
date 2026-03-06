@@ -1,10 +1,10 @@
 package app
 
 import (
+	"fmt"
 	"strings"
 
 	tea "charm.land/bubbletea/v2"
-	"charm.land/lipgloss/v2"
 
 	"github.com/chrisbraddock/shellkit/internal/config"
 	"github.com/chrisbraddock/shellkit/internal/data"
@@ -23,15 +23,17 @@ const (
 	tabDoctor
 )
 
-var tabNames = []string{
-	"Aliases",
-	"Functions",
-	"Packages",
-	"Tmux",
-	"Search",
-	"Info",
-	"Doctor",
-}
+// headerLines is the number of lines consumed by the header (logo + blank).
+const headerLines = 5
+
+// tabBarLines is the number of lines consumed by the tab bar + gradient line.
+const tabBarLines = 2
+
+// statusBarLines is the number of lines consumed by the status bar.
+const statusBarLines = 1
+
+// chromeLines is total lines consumed by header + tab bar + status bar.
+const chromeLines = headerLines + tabBarLines + statusBarLines
 
 // Messages for async data loading
 type packagesLoadedMsg struct{ pkgs []data.Package }
@@ -57,8 +59,8 @@ type Model struct {
 	doctor    ui.DoctorTab
 
 	// Track lazy-loaded data
-	allAliases    []data.Alias
-	allFuncs      []data.Function
+	allAliases     []data.Alias
+	allFuncs       []data.Function
 	allKeybindings []data.Keybinding
 }
 
@@ -112,6 +114,16 @@ func (m Model) loadSysInfoAsync() tea.Cmd {
 	}
 }
 
+func (m Model) contentSize() (int, int) {
+	h, v := m.styles.Doc.GetFrameSize()
+	contentW := m.width - h
+	contentH := m.height - v - chromeLines
+	if contentH < 1 {
+		contentH = 1
+	}
+	return contentW, contentH
+}
+
 func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	switch msg := msg.(type) {
 
@@ -131,9 +143,7 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		m.packages = ui.NewPackageTab(msg.pkgs, m.styles)
 		m.search = ui.NewSearchTab(m.allAliases, m.allFuncs, msg.pkgs, m.allKeybindings, m.styles)
 		if m.width > 0 {
-			h, v := m.styles.Doc.GetFrameSize()
-			contentW := m.width - h
-			contentH := m.height - v - 4
+			contentW, contentH := m.contentSize()
 			m.packages.SetSize(contentW, contentH)
 			m.search.SetSize(contentW, contentH)
 		}
@@ -142,9 +152,7 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	case sysInfoLoadedMsg:
 		m.info = ui.NewInfoTab(msg.info, m.cfg.Version, m.styles)
 		if m.width > 0 {
-			h, v := m.styles.Doc.GetFrameSize()
-			contentW := m.width - h
-			contentH := m.height - v - 4
+			contentW, contentH := m.contentSize()
 			m.info.SetSize(contentW, contentH)
 		}
 		return m, nil
@@ -154,10 +162,7 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		m.height = msg.Height
 		m.ready = true
 
-		// Calculate content area
-		h, v := m.styles.Doc.GetFrameSize()
-		contentW := msg.Width - h
-		contentH := msg.Height - v - 4 // tab bar + help bar
+		contentW, contentH := m.contentSize()
 
 		m.aliases.SetSize(contentW, contentH)
 		m.functions.SetSize(contentW, contentH)
@@ -205,10 +210,10 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		if !m.isFiltering() {
 			switch msg.String() {
 			case "tab":
-				m.activeTab = tabID((int(m.activeTab) + 1) % len(tabNames))
+				m.activeTab = tabID((int(m.activeTab) + 1) % len(ui.TabNames))
 				return m, nil
 			case "shift+tab":
-				m.activeTab = tabID((int(m.activeTab) - 1 + len(tabNames)) % len(tabNames))
+				m.activeTab = tabID((int(m.activeTab) - 1 + len(ui.TabNames)) % len(ui.TabNames))
 				return m, nil
 			}
 		}
@@ -240,6 +245,20 @@ func (m Model) isFiltering() bool {
 	return false // Lists handle their own key routing when filtering
 }
 
+// stats returns context-aware statistics for each tab.
+func (m Model) stats() map[string]string {
+	s := make(map[string]string)
+	s["Aliases"] = fmt.Sprintf("%d aliases", len(m.allAliases))
+	s["Functions"] = fmt.Sprintf("%d functions", len(m.allFuncs))
+	s["Packages"] = fmt.Sprintf("%d packages", m.packages.Count())
+	s["Tmux"] = ""
+	total := len(m.allAliases) + len(m.allFuncs) + m.packages.Count() + len(m.allKeybindings)
+	s["Search"] = fmt.Sprintf("%d items", total)
+	s["Info"] = ""
+	s["Doctor"] = m.doctor.Summary()
+	return s
+}
+
 func (m Model) View() tea.View {
 	if !m.ready {
 		return tea.NewView("  Loading shellkit...")
@@ -247,28 +266,15 @@ func (m Model) View() tea.View {
 
 	var doc strings.Builder
 
-	// Tab bar
-	var tabs []string
-	for i, name := range tabNames {
-		if tabID(i) == m.activeTab {
-			tabs = append(tabs, m.styles.ActiveTab.Render(name))
-		} else {
-			tabs = append(tabs, m.styles.InactiveTab.Render(name))
-		}
-	}
-	tabBar := lipgloss.JoinHorizontal(lipgloss.Bottom, tabs...)
+	// 1. Header (gradient logo + version)
+	header := ui.RenderHeader(m.cfg.Version, m.cfg.OS, m.cfg.Arch, m.width, m.styles)
+	doc.WriteString(header)
+
+	// 2. Tab bar (with gradient line)
+	tabBar := ui.RenderTabBar(int(m.activeTab), m.width, m.styles)
 	doc.WriteString(tabBar)
-	doc.WriteString("\n")
 
-	// Single separator line
-	sepWidth := m.width - 2 // account for doc padding
-	if sepWidth > 0 {
-		sep := lipgloss.NewStyle().Foreground(m.styles.SubtleColor).Render(strings.Repeat("─", sepWidth))
-		doc.WriteString(sep)
-		doc.WriteString("\n")
-	}
-
-	// Tab content
+	// 3. Tab content
 	var content string
 	switch m.activeTab {
 	case tabAliases:
@@ -288,10 +294,10 @@ func (m Model) View() tea.View {
 	}
 	doc.WriteString(content)
 
-	// Help bar
-	help := m.styles.HelpBar.Render("  tab: switch  1-7: jump to tab  /: filter  q: quit")
+	// 4. Status bar
 	doc.WriteString("\n")
-	doc.WriteString(help)
+	statusBar := ui.RenderStatusBar(int(m.activeTab), m.stats(), m.width, m.styles)
+	doc.WriteString(statusBar)
 
 	v := tea.NewView(m.styles.Doc.Render(doc.String()))
 	v.AltScreen = true
