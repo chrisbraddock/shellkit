@@ -4,6 +4,9 @@
 # Managed by chezmoi - shellkit
 # ============================================================
 
+# Startup timing (for shellkit metrics)
+typeset -gF SHELLKIT_ZSH_START=$EPOCHREALTIME
+
 # ------------------------------------------------------------
 # Powerlevel10k Instant Prompt (must be at top)
 # ------------------------------------------------------------
@@ -223,6 +226,34 @@ fi
 # ------------------------------------------------------------
 
 [[ -f "${HOME}/.iterm2_shell_integration.zsh" ]] && source "${HOME}/.iterm2_shell_integration.zsh"
+
+# ------------------------------------------------------------
+# Startup Time Recording (fires once on first prompt)
+# ------------------------------------------------------------
+
+_shellkit_record_startup() {
+    add-zsh-hook -d precmd _shellkit_record_startup
+
+    if [[ -n "$SHELLKIT_ZSH_START" ]]; then
+        local duration_ms
+        (( duration_ms = (EPOCHREALTIME - SHELLKIT_ZSH_START) * 1000 ))
+        local metrics_dir="${HOME}/.local/share/shellkit"
+        [[ -d "$metrics_dir" ]] || mkdir -p "$metrics_dir"
+        local metrics_file="${metrics_dir}/metrics.jsonl"
+        local ts=$(strftime '%Y-%m-%dT%H:%M:%S%z' $EPOCHSECONDS)
+        local hostname="${HOST:-$(hostname -s)}"
+        printf '{"ts":"%s","duration_ms":%.1f,"host":"%s"}\n' \
+            "$ts" "$duration_ms" "$hostname" \
+            >> "$metrics_file"
+
+        # Rotate if too large (keep last 200 entries)
+        if [[ -f "$metrics_file" ]] && (( $(wc -l < "$metrics_file") > 500 )); then
+            tail -200 "$metrics_file" > "${metrics_file}.tmp" && mv "${metrics_file}.tmp" "$metrics_file"
+        fi
+    fi
+    unset SHELLKIT_ZSH_START
+}
+add-zsh-hook precmd _shellkit_record_startup
 
 # ------------------------------------------------------------
 # Local Customizations (not managed by chezmoi)
