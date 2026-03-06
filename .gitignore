@@ -20,3 +20,12 @@
 # Go build artifacts
 /shellkit-tui
 dist/
+
+# Bluera Knowledge
+# Config files (stores.config.json, config.json, skill-activation.json) can be committed
+# Data directory (vector DB, cloned repos) and logs are not committed
+!.bluera/
+!.bluera/bluera-knowledge/config.json
+!.bluera/bluera-knowledge/skill-activation.json
+.bluera/bluera-knowledge/data/
+.bluera/bluera-knowledge/logs/
