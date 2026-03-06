@@ -16,6 +16,7 @@ type Config struct {
 	OS           string // "darwin", "linux"
 	Arch         string // "amd64", "arm64"
 	HomeDir      string
+	MetricsDir   string
 	Version      string
 }
 
@@ -29,6 +30,7 @@ func Detect() Config {
 		AliasDir:    filepath.Join(home, ".zsh", "aliases"),
 		FunctionDir: filepath.Join(home, ".zsh", "functions"),
 		HomeDir:     home,
+		MetricsDir:  filepath.Join(home, ".local", "share", "shellkit"),
 		OS:          runtime.GOOS,
 		Arch:        runtime.GOARCH,
 	}

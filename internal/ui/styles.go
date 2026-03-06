@@ -45,6 +45,11 @@ type Styles struct {
 	GradientStart color.Color
 	GradientEnd   color.Color
 
+	// Metric health colors
+	MetricFast   color.Color
+	MetricMedium color.Color
+	MetricSlow   color.Color
+
 	// Category colors for search badges
 	CategoryAlias    lipgloss.Style
 	CategoryFunction lipgloss.Style
@@ -81,6 +86,9 @@ func NewStyles(isDark bool) *Styles {
 		SubtleColor:   subtle,
 		GradientStart: gradientStart,
 		GradientEnd:   gradientEnd,
+		MetricFast:    okColor,
+		MetricMedium:  warnColor,
+		MetricSlow:    failColor,
 	}
 
 	s.Doc = lipgloss.NewStyle().Padding(0, 1)

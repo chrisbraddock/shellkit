@@ -19,7 +19,7 @@ const (
 	tabPackages
 	tabTmux
 	tabSearch
-	tabInfo
+	tabDashboard
 	tabDoctor
 )
 
@@ -38,7 +38,7 @@ const chromeLines = headerLines + tabBarLines + statusBarLines
 // Messages for async data loading
 type packagesLoadedMsg struct{ pkgs []data.Package }
 type sysInfoLoadedMsg struct{ info data.SystemInfo }
-type doctorLoadedMsg struct{}
+type metricsLoadedMsg struct{ entries []data.MetricEntry }
 
 // Model is the root Bubble Tea model.
 type Model struct {
@@ -55,7 +55,7 @@ type Model struct {
 	packages  ui.PackageTab
 	tmux      ui.TmuxTab
 	search    ui.SearchTab
-	info      ui.InfoTab
+	dashboard ui.DashboardTab
 	doctor    ui.DoctorTab
 
 	// Track lazy-loaded data
@@ -80,10 +80,10 @@ func New() Model {
 		isDark:         true,
 		aliases:        ui.NewAliasTab(aliases, styles),
 		functions:      ui.NewFunctionTab(funcs, styles),
-		packages:       ui.NewPackageTab(nil, styles), // loaded async
+		packages:       ui.NewPackageTab(nil, styles),
 		tmux:           ui.NewTmuxTab(styles),
 		search:         ui.NewSearchTab(aliases, funcs, nil, keybindings, styles),
-		info:           ui.NewInfoTab(data.SystemInfo{}, cfg.Version, styles), // loaded async
+		dashboard:      ui.NewDashboardTab(nil, data.SystemInfo{}, cfg.Version, styles),
 		doctor:         ui.NewDoctorTab(cfg, styles),
 		allAliases:     aliases,
 		allFuncs:       funcs,
@@ -96,6 +96,7 @@ func (m Model) Init() tea.Cmd {
 		tea.RequestBackgroundColor,
 		m.loadPackagesAsync(),
 		m.loadSysInfoAsync(),
+		m.loadMetricsAsync(),
 	)
 }
 
@@ -111,6 +112,14 @@ func (m Model) loadSysInfoAsync() tea.Cmd {
 	return func() tea.Msg {
 		info := data.LoadSystemInfo()
 		return sysInfoLoadedMsg{info: info}
+	}
+}
+
+func (m Model) loadMetricsAsync() tea.Cmd {
+	cfg := m.cfg
+	return func() tea.Msg {
+		entries, _ := data.LoadMetrics(cfg.HomeDir)
+		return metricsLoadedMsg{entries: entries}
 	}
 }
 
@@ -135,7 +144,7 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		m.packages.SetStyles(m.styles)
 		m.tmux.SetStyles(m.styles)
 		m.search.SetStyles(m.styles)
-		m.info.SetStyles(m.styles)
+		m.dashboard.SetStyles(m.styles)
 		m.doctor.SetStyles(m.styles)
 		return m, nil
 
@@ -150,10 +159,18 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		return m, nil
 
 	case sysInfoLoadedMsg:
-		m.info = ui.NewInfoTab(msg.info, m.cfg.Version, m.styles)
+		m.dashboard.SetSysInfo(msg.info)
 		if m.width > 0 {
 			contentW, contentH := m.contentSize()
-			m.info.SetSize(contentW, contentH)
+			m.dashboard.SetSize(contentW, contentH)
+		}
+		return m, nil
+
+	case metricsLoadedMsg:
+		m.dashboard.SetMetrics(msg.entries)
+		if m.width > 0 {
+			contentW, contentH := m.contentSize()
+			m.dashboard.SetSize(contentW, contentH)
 		}
 		return m, nil
 
@@ -169,12 +186,11 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		m.packages.SetSize(contentW, contentH)
 		m.tmux.SetSize(contentW, contentH)
 		m.search.SetSize(contentW, contentH)
-		m.info.SetSize(contentW, contentH)
+		m.dashboard.SetSize(contentW, contentH)
 		m.doctor.SetSize(contentW, contentH)
 		return m, nil
 
 	case tea.KeyPressMsg:
-		// Global keys (not intercepted by tabs)
 		switch msg.String() {
 		case "ctrl+c":
 			return m, tea.Quit
@@ -194,19 +210,17 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			m.activeTab = tabSearch
 			return m, nil
 		case "6":
-			m.activeTab = tabInfo
+			m.activeTab = tabDashboard
 			return m, nil
 		case "7":
 			m.activeTab = tabDoctor
 			return m, nil
 		}
 
-		// q quits only when not filtering in a list
 		if msg.String() == "q" && !m.isFiltering() {
 			return m, tea.Quit
 		}
 
-		// Tab/shift-tab for tab switching (only when not filtering)
 		if !m.isFiltering() {
 			switch msg.String() {
 			case "tab":
@@ -219,7 +233,6 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		}
 	}
 
-	// Delegate to active tab
 	var cmd tea.Cmd
 	switch m.activeTab {
 	case tabAliases:
@@ -232,8 +245,8 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		cmd = m.tmux.Update(msg)
 	case tabSearch:
 		cmd = m.search.Update(msg)
-	case tabInfo:
-		cmd = m.info.Update(msg)
+	case tabDashboard:
+		cmd = m.dashboard.Update(msg)
 	case tabDoctor:
 		cmd = m.doctor.Update(msg)
 	}
@@ -242,10 +255,9 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 }
 
 func (m Model) isFiltering() bool {
-	return false // Lists handle their own key routing when filtering
+	return false
 }
 
-// stats returns context-aware statistics for each tab.
 func (m Model) stats() map[string]string {
 	s := make(map[string]string)
 	s["Aliases"] = fmt.Sprintf("%d aliases", len(m.allAliases))
@@ -254,7 +266,7 @@ func (m Model) stats() map[string]string {
 	s["Tmux"] = ""
 	total := len(m.allAliases) + len(m.allFuncs) + m.packages.Count() + len(m.allKeybindings)
 	s["Search"] = fmt.Sprintf("%d items", total)
-	s["Info"] = ""
+	s["Dashboard"] = m.dashboard.Summary()
 	s["Doctor"] = m.doctor.Summary()
 	return s
 }
@@ -266,15 +278,12 @@ func (m Model) View() tea.View {
 
 	var doc strings.Builder
 
-	// 1. Header (gradient logo + version)
 	header := ui.RenderHeader(m.cfg.Version, m.cfg.OS, m.cfg.Arch, m.width, m.styles)
 	doc.WriteString(header)
 
-	// 2. Tab bar (with gradient line)
 	tabBar := ui.RenderTabBar(int(m.activeTab), m.width, m.styles)
 	doc.WriteString(tabBar)
 
-	// 3. Tab content
 	var content string
 	switch m.activeTab {
 	case tabAliases:
@@ -287,14 +296,13 @@ func (m Model) View() tea.View {
 		content = m.tmux.View()
 	case tabSearch:
 		content = m.search.View()
-	case tabInfo:
-		content = m.info.View()
+	case tabDashboard:
+		content = m.dashboard.View()
 	case tabDoctor:
 		content = m.doctor.View()
 	}
 	doc.WriteString(content)
 
-	// 4. Status bar
 	doc.WriteString("\n")
 	statusBar := ui.RenderStatusBar(int(m.activeTab), m.stats(), m.width, m.styles)
 	doc.WriteString(statusBar)

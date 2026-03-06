@@ -14,7 +14,7 @@ var TabNames = []string{
 	"Packages",
 	"Tmux",
 	"Search",
-	"Info",
+	"Dashboard",
 	"Doctor",
 }
 
