@@ -14,12 +14,12 @@ import (
 type tabID int
 
 const (
-	tabAliases tabID = iota
+	tabDashboard tabID = iota
+	tabAliases
 	tabFunctions
 	tabPackages
 	tabTmux
 	tabSearch
-	tabDashboard
 	tabDoctor
 )
 
@@ -195,22 +195,22 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		case "ctrl+c":
 			return m, tea.Quit
 		case "1":
-			m.activeTab = tabAliases
+			m.activeTab = tabDashboard
 			return m, nil
 		case "2":
-			m.activeTab = tabFunctions
+			m.activeTab = tabAliases
 			return m, nil
 		case "3":
-			m.activeTab = tabPackages
+			m.activeTab = tabFunctions
 			return m, nil
 		case "4":
-			m.activeTab = tabTmux
+			m.activeTab = tabPackages
 			return m, nil
 		case "5":
-			m.activeTab = tabSearch
+			m.activeTab = tabTmux
 			return m, nil
 		case "6":
-			m.activeTab = tabDashboard
+			m.activeTab = tabSearch
 			return m, nil
 		case "7":
 			m.activeTab = tabDoctor

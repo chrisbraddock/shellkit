@@ -9,12 +9,12 @@ import (
 
 // TabNames are the display names for each tab.
 var TabNames = []string{
+	"Dashboard",
 	"Aliases",
 	"Functions",
 	"Packages",
 	"Tmux",
 	"Search",
-	"Dashboard",
 	"Doctor",
 }
 
