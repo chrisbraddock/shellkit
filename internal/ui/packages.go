@@ -32,6 +32,9 @@ func NewPackageTab(pkgs []data.Package, styles *Styles) PackageTab {
 	return t
 }
 
+// AtTop returns true when the viewport is scrolled to the top.
+func (t *PackageTab) AtTop() bool { return t.viewport.ScrollPercent() <= 0 }
+
 func (t *PackageTab) SetStyles(s *Styles) {
 	t.styles = s
 	t.viewport.SetContent(t.renderContent())

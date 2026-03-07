@@ -39,6 +39,9 @@ func NewDoctorTab(cfg config.Config, styles *Styles) DoctorTab {
 	return t
 }
 
+// AtTop returns true when the viewport is scrolled to the top.
+func (t *DoctorTab) AtTop() bool { return t.viewport.ScrollPercent() <= 0 }
+
 func (t *DoctorTab) SetStyles(s *Styles) {
 	t.styles = s
 	t.runChecks()

@@ -114,6 +114,9 @@ func NewSearchTab(aliases []data.Alias, funcs []data.Function, pkgs []data.Packa
 
 func (t *SearchTab) SetStyles(s *Styles) { t.styles = s }
 
+// AtTop returns true when the list cursor is at the first item.
+func (t *SearchTab) AtTop() bool { return t.list.Index() == 0 }
+
 func (t *SearchTab) SetSize(w, h int) {
 	t.width = w
 	t.height = h

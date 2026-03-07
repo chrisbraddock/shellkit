@@ -43,6 +43,9 @@ func NewDashboardTab(entries []data.MetricEntry, info data.SystemInfo, version s
 	return t
 }
 
+// AtTop returns true when the viewport is scrolled to the top.
+func (t *DashboardTab) AtTop() bool { return t.viewport.ScrollPercent() <= 0 }
+
 func (t *DashboardTab) SetStyles(s *Styles) {
 	t.styles = s
 	t.renderContent()

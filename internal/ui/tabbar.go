@@ -19,16 +19,21 @@ var TabNames = []string{
 }
 
 // RenderTabBar renders a rich tab bar with dot indicator, numbers, and gradient accent line.
-func RenderTabBar(activeIdx int, width int, styles *Styles) string {
+// When focused is true, the active tab gets an underline to indicate keyboard focus.
+func RenderTabBar(activeIdx int, focused bool, width int, styles *Styles) string {
 	var doc strings.Builder
 
 	var tabs []string
 	for i, name := range TabNames {
 		var tab string
 		if i == activeIdx {
-			// Active: ● Name (bold accent)
+			// Active tab
 			dot := styles.TabDot.Render("●")
-			label := styles.ActiveTab.Render(name)
+			activeStyle := styles.ActiveTab
+			if focused {
+				activeStyle = activeStyle.Underline(true)
+			}
+			label := activeStyle.Render(name)
 			tab = dot + label
 		} else {
 			// Inactive: number + name (subtle)

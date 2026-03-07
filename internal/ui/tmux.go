@@ -42,6 +42,9 @@ func NewTmuxTab(styles *Styles) TmuxTab {
 	}
 }
 
+// AtTop returns true when the viewport is scrolled to the top.
+func (t *TmuxTab) AtTop() bool { return t.viewport.ScrollPercent() <= 0 }
+
 func (t *TmuxTab) SetStyles(s *Styles) {
 	t.styles = s
 	style := "dark"

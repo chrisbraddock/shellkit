@@ -42,13 +42,14 @@ type metricsLoadedMsg struct{ entries []data.MetricEntry }
 
 // Model is the root Bubble Tea model.
 type Model struct {
-	cfg       config.Config
-	activeTab tabID
-	width     int
-	height    int
-	isDark    bool
-	styles    *ui.Styles
-	ready     bool
+	cfg        config.Config
+	activeTab  tabID
+	tabFocused bool // true = tab bar focused, false = content focused
+	width      int
+	height     int
+	isDark     bool
+	styles     *ui.Styles
+	ready      bool
 
 	headerState ui.HeaderState
 	aliases     ui.AliasTab
@@ -79,6 +80,7 @@ func New() Model {
 		cfg:            cfg,
 		styles:         styles,
 		isDark:         true,
+		tabFocused:     true,
 		headerState:    ui.NewHeaderState(styles),
 		aliases:        ui.NewAliasTab(aliases, styles),
 		functions:      ui.NewFunctionTab(funcs, styles),
@@ -200,71 +202,131 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		return m, nil
 
 	case tea.KeyPressMsg:
-		switch msg.String() {
+		key := msg.String()
+
+		// Global keys always work
+		switch key {
 		case "ctrl+c":
 			return m, tea.Quit
 		case "1":
 			m.activeTab = tabDashboard
+			m.tabFocused = true
 			return m, nil
 		case "2":
 			m.activeTab = tabAliases
+			m.tabFocused = true
 			return m, nil
 		case "3":
 			m.activeTab = tabFunctions
+			m.tabFocused = true
 			return m, nil
 		case "4":
 			m.activeTab = tabPackages
+			m.tabFocused = true
 			return m, nil
 		case "5":
 			m.activeTab = tabTmux
+			m.tabFocused = true
 			return m, nil
 		case "6":
 			m.activeTab = tabSearch
+			m.tabFocused = true
 			return m, nil
 		case "7":
 			m.activeTab = tabDoctor
+			m.tabFocused = true
 			return m, nil
 		}
 
-		if msg.String() == "q" && !m.isFiltering() {
+		if key == "q" && !m.isFiltering() {
 			return m, tea.Quit
 		}
 
+		if m.tabFocused {
+			// Tab bar is focused: left/right change tabs, down enters content
+			switch key {
+			case "left", "shift+tab":
+				m.activeTab = tabID((int(m.activeTab) - 1 + len(ui.TabNames)) % len(ui.TabNames))
+				return m, nil
+			case "right", "tab":
+				m.activeTab = tabID((int(m.activeTab) + 1) % len(ui.TabNames))
+				return m, nil
+			case "down", "enter":
+				m.tabFocused = false
+				return m, nil
+			}
+			return m, nil
+		}
+
+		// Content is focused
 		if !m.isFiltering() {
-			switch msg.String() {
+			switch key {
 			case "tab":
 				m.activeTab = tabID((int(m.activeTab) + 1) % len(ui.TabNames))
+				m.tabFocused = true
 				return m, nil
 			case "shift+tab":
 				m.activeTab = tabID((int(m.activeTab) - 1 + len(ui.TabNames)) % len(ui.TabNames))
+				m.tabFocused = true
+				return m, nil
+			}
+
+			// Up at the top of content → return to tab bar
+			if key == "up" && m.activeTabAtTop() {
+				m.tabFocused = true
 				return m, nil
 			}
 		}
 	}
 
-	var cmd tea.Cmd
-	switch m.activeTab {
-	case tabAliases:
-		cmd = m.aliases.Update(msg)
-	case tabFunctions:
-		cmd = m.functions.Update(msg)
-	case tabPackages:
-		cmd = m.packages.Update(msg)
-	case tabTmux:
-		cmd = m.tmux.Update(msg)
-	case tabSearch:
-		cmd = m.search.Update(msg)
-	case tabDashboard:
-		cmd = m.dashboard.Update(msg)
-	case tabDoctor:
-		cmd = m.doctor.Update(msg)
+	// Dispatch to active tab content (only when content focused)
+	if !m.tabFocused {
+		var cmd tea.Cmd
+		switch m.activeTab {
+		case tabAliases:
+			cmd = m.aliases.Update(msg)
+		case tabFunctions:
+			cmd = m.functions.Update(msg)
+		case tabPackages:
+			cmd = m.packages.Update(msg)
+		case tabTmux:
+			cmd = m.tmux.Update(msg)
+		case tabSearch:
+			cmd = m.search.Update(msg)
+		case tabDashboard:
+			cmd = m.dashboard.Update(msg)
+		case tabDoctor:
+			cmd = m.doctor.Update(msg)
+		}
+		return m, cmd
 	}
 
-	return m, cmd
+	return m, nil
 }
 
 func (m Model) isFiltering() bool {
 	return false
+}
+
+// activeTabAtTop returns true if the active tab's content is scrolled/selected at the top.
+func (m Model) activeTabAtTop() bool {
+	switch m.activeTab {
+	case tabAliases:
+		return m.aliases.AtTop()
+	case tabFunctions:
+		return m.functions.AtTop()
+	case tabPackages:
+		return m.packages.AtTop()
+	case tabTmux:
+		return m.tmux.AtTop()
+	case tabSearch:
+		return m.search.AtTop()
+	case tabDashboard:
+		return m.dashboard.AtTop()
+	case tabDoctor:
+		return m.doctor.AtTop()
+	}
+	return true
 }
 
 func (m Model) stats() map[string]string {
@@ -290,7 +352,7 @@ func (m Model) View() tea.View {
 	header := ui.RenderHeader(m.cfg.Version, m.cfg.OS, m.cfg.Arch, m.width, m.styles, &m.headerState)
 	doc.WriteString(header)
 
-	tabBar := ui.RenderTabBar(int(m.activeTab), m.width, m.styles)
+	tabBar := ui.RenderTabBar(int(m.activeTab), m.tabFocused, m.width, m.styles)
 	doc.WriteString(tabBar)
 
 	var content string

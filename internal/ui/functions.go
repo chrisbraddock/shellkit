@@ -63,6 +63,9 @@ func NewFunctionTab(funcs []data.Function, styles *Styles) FunctionTab {
 	}
 }
 
+// AtTop returns true when the list cursor is at the first item.
+func (t *FunctionTab) AtTop() bool { return t.list.Index() == 0 }
+
 func (t *FunctionTab) SetStyles(s *Styles) {
 	t.styles = s
 	style := "dark"

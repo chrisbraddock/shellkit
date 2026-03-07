@@ -63,6 +63,9 @@ func NewAliasTab(aliases []data.Alias, styles *Styles) AliasTab {
 
 func (t *AliasTab) SetStyles(s *Styles) { t.styles = s }
 
+// AtTop returns true when the list cursor is at the first item.
+func (t *AliasTab) AtTop() bool { return t.list.Index() == 0 }
+
 func (t *AliasTab) SetSize(w, h int) {
 	t.width = w
 	t.height = h
