@@ -50,13 +50,14 @@ type Model struct {
 	styles    *ui.Styles
 	ready     bool
 
-	aliases   ui.AliasTab
-	functions ui.FunctionTab
-	packages  ui.PackageTab
-	tmux      ui.TmuxTab
-	search    ui.SearchTab
-	dashboard ui.DashboardTab
-	doctor    ui.DoctorTab
+	headerState ui.HeaderState
+	aliases     ui.AliasTab
+	functions   ui.FunctionTab
+	packages    ui.PackageTab
+	tmux        ui.TmuxTab
+	search      ui.SearchTab
+	dashboard   ui.DashboardTab
+	doctor      ui.DoctorTab
 
 	// Track lazy-loaded data
 	allAliases     []data.Alias
@@ -78,6 +79,7 @@ func New() Model {
 		cfg:            cfg,
 		styles:         styles,
 		isDark:         true,
+		headerState:    ui.NewHeaderState(styles),
 		aliases:        ui.NewAliasTab(aliases, styles),
 		functions:      ui.NewFunctionTab(funcs, styles),
 		packages:       ui.NewPackageTab(nil, styles),
@@ -94,6 +96,7 @@ func New() Model {
 func (m Model) Init() tea.Cmd {
 	return tea.Batch(
 		tea.RequestBackgroundColor,
+		m.headerState.Init(),
 		m.loadPackagesAsync(),
 		m.loadSysInfoAsync(),
 		m.loadMetricsAsync(),
@@ -136,9 +139,14 @@ func (m Model) contentSize() (int, int) {
 func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	switch msg := msg.(type) {
 
+	case ui.AnimTickMsg:
+		cmd := m.headerState.Update(msg)
+		return m, cmd
+
 	case tea.BackgroundColorMsg:
 		m.isDark = msg.IsDark()
 		m.styles = ui.NewStyles(m.isDark)
+		m.headerState.SetStyles(m.styles)
 		m.aliases.SetStyles(m.styles)
 		m.functions.SetStyles(m.styles)
 		m.packages.SetStyles(m.styles)
@@ -178,6 +186,7 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		m.width = msg.Width
 		m.height = msg.Height
 		m.ready = true
+		m.headerState.SetSize(m.width)
 
 		contentW, contentH := m.contentSize()
 
@@ -278,7 +287,7 @@ func (m Model) View() tea.View {
 
 	var doc strings.Builder
 
-	header := ui.RenderHeader(m.cfg.Version, m.cfg.OS, m.cfg.Arch, m.width, m.styles)
+	header := ui.RenderHeader(m.cfg.Version, m.cfg.OS, m.cfg.Arch, m.width, m.styles, &m.headerState)
 	doc.WriteString(header)
 
 	tabBar := ui.RenderTabBar(int(m.activeTab), m.width, m.styles)

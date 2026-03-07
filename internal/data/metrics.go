@@ -12,9 +12,24 @@ import (
 
 // MetricEntry represents a single shell startup timing record.
 type MetricEntry struct {
-	Timestamp  time.Time `json:"ts"`
-	DurationMs float64   `json:"duration_ms"`
-	Host       string    `json:"host"`
+	Timestamp  time.Time
+	DurationMs float64 `json:"duration_ms"`
+	Host       string  `json:"host"`
+}
+
+// rawMetricEntry is used for lenient JSON parsing of timestamps.
+type rawMetricEntry struct {
+	Ts         string  `json:"ts"`
+	DurationMs float64 `json:"duration_ms"`
+	Host       string  `json:"host"`
+}
+
+// tsFormats lists time formats to try when parsing the "ts" field.
+var tsFormats = []string{
+	time.RFC3339,
+	"2006-01-02T15:04:05-0700",  // zsh strftime (no colon in tz)
+	"2006-01-02T15:04:05-07:00",
+	"2006-01-02T15:04:05Z",
 }
 
 // MetricsSummary holds computed statistics over the metrics history.
@@ -51,9 +66,20 @@ func LoadMetrics(homeDir string) ([]MetricEntry, error) {
 			continue
 		}
 
-		var entry MetricEntry
-		if err := json.Unmarshal(line, &entry); err != nil {
+		var raw rawMetricEntry
+		if err := json.Unmarshal(line, &raw); err != nil {
 			continue // skip malformed lines
+		}
+
+		entry := MetricEntry{
+			DurationMs: raw.DurationMs,
+			Host:       raw.Host,
+		}
+		for _, fmt := range tsFormats {
+			if t, err := time.Parse(fmt, raw.Ts); err == nil {
+				entry.Timestamp = t
+				break
+			}
 		}
 		entries = append(entries, entry)
 	}
