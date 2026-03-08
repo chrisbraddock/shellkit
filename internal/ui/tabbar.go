@@ -48,7 +48,7 @@ func RenderTabBar(activeIdx int, focused bool, width int, styles *Styles, state 
 	mode := animWaveDots
 	localF := 0
 	if state != nil {
-		frame = state.frame + 17
+		frame = state.Frame() + 17
 		mode = state.currentMode()
 		localF = (state.localFrame() + 17) % framesPerAnim
 	}

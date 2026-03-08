@@ -29,6 +29,7 @@ var animationCatalog = []animMeta{
 	{mode: animLaserShow, id: "laser-show", name: "Laser Show", category: "Spectacle", description: "Neon sweeps and mirrored beams."},
 	{mode: animFireworks, id: "fireworks", name: "Fireworks", category: "Spectacle", description: "Skybursts and falling embers."},
 	{mode: animPlasma, id: "plasma", name: "Plasma", category: "Spectacle", description: "Classic demoscene plasma turbulence."},
+	{mode: animMatrixRain, id: "matrix-rain", name: "Matrix Rain", category: "Sci-Fi", description: "Green code streams cascading in vertical sheets."},
 	{mode: animHyperspace, id: "hyperspace", name: "Hyperspace", category: "Sci-Fi", description: "Warp streaks rushing from a vanishing point."},
 	{mode: animTimeRift, id: "time-rift", name: "Time Rift", category: "Sci-Fi", description: "A glitching seam in spacetime."},
 	{mode: animReactorPulse, id: "reactor-pulse", name: "Reactor Pulse", category: "Sci-Fi", description: "An orbital core cycling with energy."},

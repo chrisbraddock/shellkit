@@ -45,6 +45,7 @@ const (
 	animLaserShow                      // neon laser grid sweep
 	animFireworks                      // exploding skybursts
 	animPlasma                         // demoscene plasma field
+	animMatrixRain                     // green falling code rain
 	animHyperspace                     // warp-speed star streaks
 	animTimeRift                       // VHS glitch / spacetime tear
 	animReactorPulse                   // orbital reactor core pulse
@@ -67,7 +68,8 @@ func animTick() tea.Cmd {
 
 // HeaderState holds animation state for the header.
 type HeaderState struct {
-	frame                int
+	tick                 int
+	animFrame            float64
 	width                int
 	styles               *Styles
 	locked               bool
@@ -76,17 +78,24 @@ type HeaderState struct {
 	showVersion          bool
 	showPlatform         bool
 	showCompactTabAccent bool
+	animationSpeed       int
 	enabledModes         []animMode
 }
 
 func NewHeaderState(styles *Styles, settings config.UISettings) HeaderState {
+	start := randomHeaderFrame(len(allAnimModes()))
 	h := HeaderState{
-		styles:       styles,
-		showVersion:  true,
-		showPlatform: true,
+		styles:         styles,
+		showVersion:    true,
+		showPlatform:   true,
+		animationSpeed: config.DefaultAnimationSpeed,
+		tick:           start,
+		animFrame:      float64(start),
 	}
 	h.ApplySettings(settings, true)
-	h.frame = randomHeaderFrame(len(h.availableModes()))
+	start = randomHeaderFrame(len(h.availableModes()))
+	h.tick = start
+	h.animFrame = float64(start)
 	return h
 }
 
@@ -104,7 +113,8 @@ func (h *HeaderState) SetStyles(s *Styles) {
 
 func (h *HeaderState) Update(msg tea.Msg) tea.Cmd {
 	if _, ok := msg.(AnimTickMsg); ok {
-		h.frame++
+		h.tick++
+		h.animFrame += h.animationStep()
 		return animTick()
 	}
 	return nil
@@ -112,7 +122,7 @@ func (h *HeaderState) Update(msg tea.Msg) tea.Cmd {
 
 func (h *HeaderState) autoMode() animMode {
 	modes := h.availableModes()
-	return modes[(h.frame/framesPerAnim)%len(modes)]
+	return modes[(h.tick/framesPerAnim)%len(modes)]
 }
 
 func (h *HeaderState) currentMode() animMode {
@@ -127,11 +137,11 @@ func (h *HeaderState) currentMode() animMode {
 
 // localFrame returns the frame number within the current animation cycle.
 func (h *HeaderState) localFrame() int {
-	return h.frame % framesPerAnim
+	return h.tick % framesPerAnim
 }
 
 func (h *HeaderState) Frame() int {
-	return h.frame
+	return int(math.Round(h.animFrame))
 }
 
 func (h *HeaderState) ToggleLock() {
@@ -193,6 +203,7 @@ func (h *HeaderState) ApplySettings(settings config.UISettings, syncCompact bool
 	h.showVersion = settings.Header.ShowVersion
 	h.showPlatform = settings.Header.ShowPlatform
 	h.showCompactTabAccent = settings.Header.ShowCompactTabAccent
+	h.animationSpeed = config.NormalizeAnimationSpeed(settings.Header.AnimationSpeed)
 	h.enabledModes = enabledModesFromIDs(settings.Header.EnabledAnimations)
 	if syncCompact {
 		h.compact = settings.Header.StartCollapsed
@@ -200,6 +211,10 @@ func (h *HeaderState) ApplySettings(settings config.UISettings, syncCompact bool
 	if h.locked && !h.modeEnabled(h.lockedMode) {
 		h.locked = false
 	}
+}
+
+func (h *HeaderState) animationStep() float64 {
+	return float64(h.animationSpeed) / float64(config.DefaultAnimationSpeed)
 }
 
 func (h *HeaderState) availableModes() []animMode {
@@ -281,7 +296,7 @@ func RenderHeader(version, os, arch string, width int, styles *Styles, state *He
 	mode := animWaveDots
 	localF := 0
 	if state != nil {
-		frame = state.frame
+		frame = state.Frame()
 		mode = state.currentMode()
 		localF = state.localFrame()
 	}
@@ -388,7 +403,7 @@ func renderCompactHeader(version, os, arch string, width int, styles *Styles, st
 	mode := animWaveDots
 	localF := 0
 	if state != nil {
-		frame = state.frame + 9
+		frame = state.Frame() + 9
 		mode = state.currentMode()
 		localF = state.localFrame()
 	}
@@ -448,13 +463,18 @@ type animCell struct {
 }
 
 var (
-	demoWhite  color.Color = lipgloss.Color("#FFF7FB")
-	demoPink   color.Color = lipgloss.Color("#FF4FD8")
-	demoViolet color.Color = lipgloss.Color("#9A6BFF")
-	demoBlue   color.Color = lipgloss.Color("#5B8CFF")
-	demoCyan   color.Color = lipgloss.Color("#35F3FF")
-	demoLime   color.Color = lipgloss.Color("#C8FF4D")
-	demoAmber  color.Color = lipgloss.Color("#FFB347")
+	demoWhite       color.Color = lipgloss.Color("#FFF7FB")
+	demoPink        color.Color = lipgloss.Color("#FF4FD8")
+	demoViolet      color.Color = lipgloss.Color("#9A6BFF")
+	demoBlue        color.Color = lipgloss.Color("#5B8CFF")
+	demoCyan        color.Color = lipgloss.Color("#35F3FF")
+	demoLime        color.Color = lipgloss.Color("#C8FF4D")
+	demoAmber       color.Color = lipgloss.Color("#FFB347")
+	demoMatrixHead  color.Color = lipgloss.Color("#E8FFE9")
+	demoMatrixGlow  color.Color = lipgloss.Color("#B9FFB9")
+	demoMatrixCore  color.Color = lipgloss.Color("#5DFF87")
+	demoMatrixTrail color.Color = lipgloss.Color("#19B65D")
+	demoMatrixTail  color.Color = lipgloss.Color("#0B5D2B")
 )
 
 // fadeGrid reduces visibility of the grid by the given factor [0, 1].
@@ -639,6 +659,8 @@ func buildAnimationGrid(rows, w, frame int, mode animMode, localF int, applyFade
 		renderFireworks(grid, w, frame)
 	case animPlasma:
 		renderPlasma(grid, w, frame)
+	case animMatrixRain:
+		renderMatrixRain(grid, w, frame)
 	case animHyperspace:
 		renderHyperspace(grid, w, frame)
 	case animTimeRift:

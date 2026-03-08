@@ -30,3 +30,10 @@ func TestRenderAnimationPreviewReturnsFourRows(t *testing.T) {
 		t.Fatalf("renderAnimationPreview() row count mismatch: got %d newlines", strings.Count(preview, "\n"))
 	}
 }
+
+func TestRenderAnimationPreviewMatrixRainHasVisibleGlyphs(t *testing.T) {
+	preview := renderAnimationPreview(animMatrixRain, 28, 24, NewStyles(true))
+	if strings.TrimSpace(preview) == "" {
+		t.Fatal("matrix rain preview rendered no visible glyphs")
+	}
+}

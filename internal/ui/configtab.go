@@ -2,6 +2,7 @@ package ui
 
 import (
 	"fmt"
+	"math"
 	"strings"
 
 	tea "charm.land/bubbletea/v2"
@@ -22,6 +23,7 @@ const (
 	configToggleVersion
 	configTogglePlatform
 	configToggleCompactAccent
+	configAdjustAnimationSpeed
 	configToggleAnimation
 )
 
@@ -101,6 +103,12 @@ func (t *ConfigTab) Update(msg tea.Msg) tea.Cmd {
 		t.cursor = clampInt(t.cursor-1, 0, len(items)-1)
 	case "down", "j":
 		t.cursor = clampInt(t.cursor+1, 0, len(items)-1)
+	case "left", "h":
+		t.syncPreview(items[t.cursor])
+		return t.adjustCurrent(items[t.cursor], -config.AnimationSpeedStep)
+	case "right", "l":
+		t.syncPreview(items[t.cursor])
+		return t.adjustCurrent(items[t.cursor], config.AnimationSpeedStep)
 	case " ", "enter":
 		t.syncPreview(items[t.cursor])
 		return t.toggleCurrent(items[t.cursor])
@@ -114,7 +122,7 @@ func (t *ConfigTab) View() string {
 
 	b.WriteString(t.styles.Title.Render("  Header Config"))
 	b.WriteString("\n")
-	b.WriteString(t.styles.Subtle.Render("  Toggle header elements, startup state, and animation rotation."))
+	b.WriteString(t.styles.Subtle.Render("  Toggle header elements, startup state, animation speed, and rotation."))
 	b.WriteString("\n\n")
 
 	items := t.items()
@@ -126,7 +134,7 @@ func (t *ConfigTab) View() string {
 	if t.useSplitLayout() {
 		b.WriteString(t.renderSplitBody(items))
 		b.WriteString("\n\n")
-		b.WriteString(t.styles.HelpBar.Render("  up/down move · enter toggle · settings saved immediately"))
+		b.WriteString(t.styles.HelpBar.Render("  up/down move · enter toggle/reset · left/right adjust speed · settings saved immediately"))
 		if t.status != "" {
 			b.WriteString("\n")
 			b.WriteString(t.styles.Info.Render("  " + t.status))
@@ -143,7 +151,7 @@ func (t *ConfigTab) View() string {
 	b.WriteString(t.renderConfigList(items, 0, true))
 
 	b.WriteString("\n")
-	b.WriteString(t.styles.HelpBar.Render("  up/down move · enter toggle · settings saved immediately"))
+	b.WriteString(t.styles.HelpBar.Render("  up/down move · enter toggle/reset · left/right adjust speed · settings saved immediately"))
 	if t.status != "" {
 		b.WriteString("\n")
 		b.WriteString(t.styles.Info.Render("  " + t.status))
@@ -228,7 +236,7 @@ func (t *ConfigTab) Summary() string {
 	if t.settings.Header.StartCollapsed {
 		state = "collapsed"
 	}
-	return fmt.Sprintf("%s · %d fx", state, len(t.enabledAnimationIDs()))
+	return fmt.Sprintf("%s · %d fx · %d%%", state, len(t.enabledAnimationIDs()), t.animationSpeed())
 }
 
 func (t *ConfigTab) items() []configTabItem {
@@ -256,6 +264,12 @@ func (t *ConfigTab) items() []configTabItem {
 			kind:        configToggleCompactAccent,
 			label:       "Show animated tab accent",
 			description: "Collapsed mode keeps the extra animated line below the navigation tabs.",
+		},
+		{
+			section:     "Animation",
+			kind:        configAdjustAnimationSpeed,
+			label:       "Header animation speed",
+			description: "Control how fast the header, tab chrome, and preview animate.",
 		},
 	}
 
@@ -333,6 +347,10 @@ func (t *ConfigTab) renderAnimationColumns(items []configTabItem, startIndex, co
 }
 
 func (t *ConfigTab) renderItemBlock(item configTabItem, index, width int) string {
+	if item.kind == configAdjustAnimationSpeed {
+		return t.renderSpeedItemBlock(item, index, width)
+	}
+
 	cursor := "  "
 	if index == t.cursor {
 		cursor = "> "
@@ -356,6 +374,27 @@ func (t *ConfigTab) renderItemBlock(item configTabItem, index, width int) string
 
 	return lineStyle.Width(width).Render(label) + "\n" +
 		t.styles.Subtle.Width(width).Render(desc)
+}
+
+func (t *ConfigTab) renderSpeedItemBlock(item configTabItem, index, width int) string {
+	cursor := "  "
+	if index == t.cursor {
+		cursor = "> "
+	}
+	lineStyle := t.styles.Subtle
+	if index == t.cursor {
+		lineStyle = t.styles.Highlight
+	}
+
+	speed := t.animationSpeed()
+	label := fmt.Sprintf("  %s[%3d%%] %s", cursor, speed, item.label)
+	slider := fmt.Sprintf("      %s", renderConfigSlider(speed, 16))
+	if width > 0 {
+		slider = truncateConfigText(slider+"  "+item.description, maxInt(20, width-1))
+		return lineStyle.Width(width).Render(label) + "\n" +
+			t.styles.Subtle.Width(width).Render(slider)
+	}
+	return lineStyle.Render(label) + "\n" + t.styles.Subtle.Render(slider)
 }
 
 func blankConfigItemBlock(width int) string {
@@ -425,6 +464,10 @@ func (t *ConfigTab) animationEnabled(mode animMode) bool {
 	return false
 }
 
+func (t *ConfigTab) animationSpeed() int {
+	return config.NormalizeAnimationSpeed(t.settings.Header.AnimationSpeed)
+}
+
 func (t *ConfigTab) toggleCurrent(item configTabItem) tea.Cmd {
 	switch item.kind {
 	case configToggleCollapsed:
@@ -435,12 +478,35 @@ func (t *ConfigTab) toggleCurrent(item configTabItem) tea.Cmd {
 		t.settings.Header.ShowPlatform = !t.settings.Header.ShowPlatform
 	case configToggleCompactAccent:
 		t.settings.Header.ShowCompactTabAccent = !t.settings.Header.ShowCompactTabAccent
+	case configAdjustAnimationSpeed:
+		if t.animationSpeed() == config.DefaultAnimationSpeed {
+			t.status = "Animation speed already at default."
+			return nil
+		}
+		t.settings.Header.AnimationSpeed = config.DefaultAnimationSpeed
 	case configToggleAnimation:
 		if !t.toggleAnimation(item.mode) {
 			return nil
 		}
 	}
 
+	return t.saveSettings()
+}
+
+func (t *ConfigTab) adjustCurrent(item configTabItem, delta int) tea.Cmd {
+	if item.kind != configAdjustAnimationSpeed || delta == 0 {
+		return nil
+	}
+
+	next := config.NormalizeAnimationSpeed(t.animationSpeed() + delta)
+	if next == t.animationSpeed() {
+		return nil
+	}
+	t.settings.Header.AnimationSpeed = next
+	return t.saveSettings()
+}
+
+func (t *ConfigTab) saveSettings() tea.Cmd {
 	if err := config.SaveUISettings(t.cfg.MetricsDir, t.settings); err != nil {
 		t.status = fmt.Sprintf("save failed: %v", err)
 		return nil
@@ -483,4 +549,28 @@ func (t *ConfigTab) toggleAnimation(mode animMode) bool {
 
 	t.settings.Header.EnabledAnimations = next
 	return true
+}
+
+func renderConfigSlider(speed, width int) string {
+	width = maxInt(8, width)
+	pos := 0
+	if config.MaxAnimationSpeed > config.MinAnimationSpeed {
+		pos = int(math.Round(float64(speed-config.MinAnimationSpeed) / float64(config.MaxAnimationSpeed-config.MinAnimationSpeed) * float64(width-1)))
+	}
+	pos = clampInt(pos, 0, width-1)
+
+	var b strings.Builder
+	b.WriteRune('[')
+	for i := 0; i < width; i++ {
+		switch {
+		case i < pos:
+			b.WriteRune('=')
+		case i == pos:
+			b.WriteRune('|')
+		default:
+			b.WriteRune('-')
+		}
+	}
+	b.WriteRune(']')
+	return b.String()
 }
