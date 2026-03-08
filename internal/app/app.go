@@ -21,19 +21,11 @@ const (
 	tabTmux
 	tabSearch
 	tabDoctor
+	tabConfig
 )
-
-// headerLines is the number of lines consumed by the header (logo + blank).
-const headerLines = 5
-
-// tabBarLines is the number of lines consumed by the tab bar + gradient line.
-const tabBarLines = 2
 
 // statusBarLines is the number of lines consumed by the status bar.
 const statusBarLines = 1
-
-// chromeLines is total lines consumed by header + tab bar + status bar.
-const chromeLines = headerLines + tabBarLines + statusBarLines
 
 // Messages for async data loading
 type packagesLoadedMsg struct{ pkgs []data.Package }
@@ -50,6 +42,7 @@ type Model struct {
 	isDark     bool
 	styles     *ui.Styles
 	ready      bool
+	settings   config.UISettings
 
 	headerState ui.HeaderState
 	aliases     ui.AliasTab
@@ -59,6 +52,7 @@ type Model struct {
 	search      ui.SearchTab
 	dashboard   ui.DashboardTab
 	doctor      ui.DoctorTab
+	configTab   ui.ConfigTab
 
 	// Track lazy-loaded data
 	allAliases     []data.Alias
@@ -70,6 +64,7 @@ type Model struct {
 func New() Model {
 	cfg := config.Detect()
 	styles := ui.NewStyles(true) // assume dark until detected
+	settings, _ := config.LoadUISettings(cfg.MetricsDir)
 
 	// Fast: file parsing only, no subprocesses
 	aliases, _ := data.LoadAliases(cfg.AliasDir)
@@ -80,8 +75,9 @@ func New() Model {
 		cfg:            cfg,
 		styles:         styles,
 		isDark:         true,
+		settings:       settings,
 		tabFocused:     true,
-		headerState:    ui.NewHeaderState(styles),
+		headerState:    ui.NewHeaderState(styles, settings),
 		aliases:        ui.NewAliasTab(aliases, styles),
 		functions:      ui.NewFunctionTab(funcs, styles),
 		packages:       ui.NewPackageTab(nil, styles),
@@ -89,6 +85,7 @@ func New() Model {
 		search:         ui.NewSearchTab(aliases, funcs, nil, keybindings, styles),
 		dashboard:      ui.NewDashboardTab(nil, data.SystemInfo{}, cfg.Version, styles),
 		doctor:         ui.NewDoctorTab(cfg, styles),
+		configTab:      ui.NewConfigTab(cfg, settings, styles),
 		allAliases:     aliases,
 		allFuncs:       funcs,
 		allKeybindings: keybindings,
@@ -131,11 +128,30 @@ func (m Model) loadMetricsAsync() tea.Cmd {
 func (m Model) contentSize() (int, int) {
 	h, v := m.styles.Doc.GetFrameSize()
 	contentW := m.width - h
-	contentH := m.height - v - chromeLines
+	contentH := m.height - v - m.chromeLines()
 	if contentH < 1 {
 		contentH = 1
 	}
 	return contentW, contentH
+}
+
+func (m Model) chromeLines() int {
+	return m.headerState.LineCount() + ui.TabBarLineCount(&m.headerState) + statusBarLines
+}
+
+func (m *Model) syncContentSize() {
+	if m.width <= 0 {
+		return
+	}
+
+	contentW, contentH := m.contentSize()
+	m.aliases.SetSize(contentW, contentH)
+	m.functions.SetSize(contentW, contentH)
+	m.packages.SetSize(contentW, contentH)
+	m.tmux.SetSize(contentW, contentH)
+	m.search.SetSize(contentW, contentH)
+	m.dashboard.SetSize(contentW, contentH)
+	m.doctor.SetSize(contentW, contentH)
 }
 
 func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
@@ -156,32 +172,29 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		m.search.SetStyles(m.styles)
 		m.dashboard.SetStyles(m.styles)
 		m.doctor.SetStyles(m.styles)
+		m.configTab.SetStyles(m.styles)
+		return m, nil
+
+	case ui.HeaderSettingsChangedMsg:
+		m.settings = msg.Settings
+		m.headerState.ApplySettings(msg.Settings, false)
+		m.configTab.SetSettings(msg.Settings)
 		return m, nil
 
 	case packagesLoadedMsg:
 		m.packages = ui.NewPackageTab(msg.pkgs, m.styles)
 		m.search = ui.NewSearchTab(m.allAliases, m.allFuncs, msg.pkgs, m.allKeybindings, m.styles)
-		if m.width > 0 {
-			contentW, contentH := m.contentSize()
-			m.packages.SetSize(contentW, contentH)
-			m.search.SetSize(contentW, contentH)
-		}
+		m.syncContentSize()
 		return m, nil
 
 	case sysInfoLoadedMsg:
 		m.dashboard.SetSysInfo(msg.info)
-		if m.width > 0 {
-			contentW, contentH := m.contentSize()
-			m.dashboard.SetSize(contentW, contentH)
-		}
+		m.syncContentSize()
 		return m, nil
 
 	case metricsLoadedMsg:
 		m.dashboard.SetMetrics(msg.entries)
-		if m.width > 0 {
-			contentW, contentH := m.contentSize()
-			m.dashboard.SetSize(contentW, contentH)
-		}
+		m.syncContentSize()
 		return m, nil
 
 	case tea.WindowSizeMsg:
@@ -189,16 +202,7 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		m.height = msg.Height
 		m.ready = true
 		m.headerState.SetSize(m.width)
-
-		contentW, contentH := m.contentSize()
-
-		m.aliases.SetSize(contentW, contentH)
-		m.functions.SetSize(contentW, contentH)
-		m.packages.SetSize(contentW, contentH)
-		m.tmux.SetSize(contentW, contentH)
-		m.search.SetSize(contentW, contentH)
-		m.dashboard.SetSize(contentW, contentH)
-		m.doctor.SetSize(contentW, contentH)
+		m.syncContentSize()
 		return m, nil
 
 	case tea.KeyPressMsg:
@@ -208,6 +212,23 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		switch key {
 		case "ctrl+c":
 			return m, tea.Quit
+		case "shift+up":
+			m.headerState.Collapse()
+			m.syncContentSize()
+			return m, nil
+		case "shift+down":
+			m.headerState.Expand()
+			m.syncContentSize()
+			return m, nil
+		case "[":
+			m.headerState.CycleMode(-1)
+			return m, nil
+		case "]":
+			m.headerState.CycleMode(1)
+			return m, nil
+		case "m":
+			m.headerState.ToggleLock()
+			return m, nil
 		case "1":
 			m.activeTab = tabDashboard
 			m.tabFocused = true
@@ -234,6 +255,10 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			return m, nil
 		case "7":
 			m.activeTab = tabDoctor
+			m.tabFocused = true
+			return m, nil
+		case "8":
+			m.activeTab = tabConfig
 			m.tabFocused = true
 			return m, nil
 		}
@@ -297,6 +322,8 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			cmd = m.dashboard.Update(msg)
 		case tabDoctor:
 			cmd = m.doctor.Update(msg)
+		case tabConfig:
+			cmd = m.configTab.Update(msg)
 		}
 		return m, cmd
 	}
@@ -325,6 +352,8 @@ func (m Model) activeTabAtTop() bool {
 		return m.dashboard.AtTop()
 	case tabDoctor:
 		return m.doctor.AtTop()
+	case tabConfig:
+		return m.configTab.AtTop()
 	}
 	return true
 }
@@ -339,6 +368,7 @@ func (m Model) stats() map[string]string {
 	s["Search"] = fmt.Sprintf("%d items", total)
 	s["Dashboard"] = m.dashboard.Summary()
 	s["Doctor"] = m.doctor.Summary()
+	s["Config"] = m.configTab.Summary()
 	return s
 }
 
@@ -352,7 +382,7 @@ func (m Model) View() tea.View {
 	header := ui.RenderHeader(m.cfg.Version, m.cfg.OS, m.cfg.Arch, m.width, m.styles, &m.headerState)
 	doc.WriteString(header)
 
-	tabBar := ui.RenderTabBar(int(m.activeTab), m.tabFocused, m.width, m.styles)
+	tabBar := ui.RenderTabBar(int(m.activeTab), m.tabFocused, m.width, m.styles, &m.headerState)
 	doc.WriteString(tabBar)
 
 	var content string
@@ -371,11 +401,13 @@ func (m Model) View() tea.View {
 		content = m.dashboard.View()
 	case tabDoctor:
 		content = m.doctor.View()
+	case tabConfig:
+		content = m.configTab.View()
 	}
 	doc.WriteString(content)
 
 	doc.WriteString("\n")
-	statusBar := ui.RenderStatusBar(int(m.activeTab), m.stats(), m.width, m.styles)
+	statusBar := ui.RenderStatusBar(int(m.activeTab), m.stats(), m.headerState.ModeStatus(), m.width, m.styles)
 	doc.WriteString(statusBar)
 
 	v := tea.NewView(m.styles.Doc.Render(doc.String()))
