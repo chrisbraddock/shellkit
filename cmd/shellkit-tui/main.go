@@ -8,6 +8,7 @@ import (
 	tea "charm.land/bubbletea/v2"
 
 	"github.com/chrisbraddock/shellkit/internal/app"
+	"github.com/chrisbraddock/shellkit/internal/config"
 )
 
 var (
@@ -16,8 +17,14 @@ var (
 )
 
 func main() {
+	config.BuildVersion = version
+
 	if len(os.Args) > 1 && os.Args[1] == "--version" {
-		fmt.Printf("shellkit-tui %s (%s)\n", version, commit)
+		v := config.Detect().Version
+		if v == "" {
+			v = version
+		}
+		fmt.Printf("shellkit-tui %s (%s)\n", v, commit)
 		os.Exit(0)
 	}
 
