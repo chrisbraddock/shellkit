@@ -1,7 +1,6 @@
 package ui
 
 import (
-	"fmt"
 	"image/color"
 	"strings"
 
@@ -54,10 +53,10 @@ func RenderTabBar(activeIdx int, focused bool, width int, styles *Styles, state 
 		localF = (state.localFrame() + 17) % framesPerAnim
 	}
 
-	grid := buildAnimationGrid(2, lineWidth, frame, mode, localF, true)
+	grid := buildAnimationGrid(2, lineWidth, frame, mode, localF, false)
 	seedChromeBleed(grid[0], frame)
 	seedChromeAccent(grid[1], frame, mode)
-	overlayTabs(grid[0], activeIdx, focused, width, styles)
+	overlayTabs(grid[0], activeIdx, focused, styles)
 
 	baseColors := lipgloss.Blend1D(lineWidth, styles.GradientStart, styles.GradientEnd)
 	compact := state != nil && state.IsCompact()
@@ -81,28 +80,27 @@ func RenderTabBar(activeIdx int, focused bool, width int, styles *Styles, state 
 func RenderTabBarPlain(activeIdx int, styles *Styles) string {
 	var tabs []string
 	for i, name := range TabNames {
+		label := "[" + strings.ToUpper(name) + "]"
 		if i == activeIdx {
-			tabs = append(tabs, styles.ActiveTab.Render(name))
+			tabs = append(tabs, styles.ActiveTab.Render(label))
 		} else {
-			tabs = append(tabs, styles.InactiveTab.Render(name))
+			tabs = append(tabs, styles.InactiveTab.Render(label))
 		}
 	}
 	return lipgloss.JoinHorizontal(lipgloss.Bottom, tabs...) + "\n"
 }
 
-func overlayTabs(row []animCell, activeIdx int, focused bool, width int, styles *Styles) {
+func overlayTabs(row []animCell, activeIdx int, focused bool, styles *Styles) {
 	pos := 0
 	for i, name := range TabNames {
 		if pos >= len(row) {
 			return
 		}
 
+		label := "[" + strings.ToUpper(name) + "]"
+
 		if i == activeIdx {
-			pos = overlayText(row, pos, "●", animCell{
-				customColor: styles.AccentColor,
-				bold:        true,
-			})
-			pos = overlayText(row, pos, " "+name+"  ", animCell{
+			pos = overlayText(row, pos, label+"  ", animCell{
 				customColor: demoWhite,
 				bold:        true,
 				underline:   focused,
@@ -110,10 +108,6 @@ func overlayTabs(row []animCell, activeIdx int, focused bool, width int, styles 
 			continue
 		}
 
-		label := name
-		if width >= 100 {
-			label = fmt.Sprintf("%d %s", i+1, name)
-		}
 		pos = overlayText(row, pos, label+"  ", animCell{
 			customColor: styles.SubtleColor,
 			dim:         true,

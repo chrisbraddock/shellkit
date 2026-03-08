@@ -24,8 +24,8 @@ const logoRows = 3
 const headerSceneRows = 7
 const compactHeaderRows = 1
 
-// HeaderLineCount is the expanded rendered header height including the badge row.
-const HeaderLineCount = headerSceneRows + 1
+// HeaderLineCount is the expanded rendered header height.
+const HeaderLineCount = headerSceneRows
 
 // Animation modes
 type animMode int
@@ -36,6 +36,11 @@ const (
 	animSineLine                       // continuous sine wave line
 	animGradientRain                   // gradient block rain/parallax
 	animConstellations                 // twinkling star field
+	animAuroraDrift                    // soft aurora curtains
+	animTidalLines                     // overlapping calm wave bands
+	animMoonDrift                      // moon + clouds
+	animSoftRain                       // light drizzle + ripples
+	animLanternDrift                   // floating lanterns / lights
 	animWormhole                       // psychedelic tunnel / portal
 	animLaserShow                      // neon laser grid sweep
 	animFireworks                      // exploding skybursts
@@ -43,6 +48,7 @@ const (
 	animHyperspace                     // warp-speed star streaks
 	animTimeRift                       // VHS glitch / spacetime tear
 	animReactorPulse                   // orbital reactor core pulse
+	animStarBattle                     // X-wing vs TIE fighters + Death Star
 	animAlienRun                       // alien side-scroller
 	animModeCount                      // sentinel for rotation
 )
@@ -122,6 +128,10 @@ func (h *HeaderState) currentMode() animMode {
 // localFrame returns the frame number within the current animation cycle.
 func (h *HeaderState) localFrame() int {
 	return h.frame % framesPerAnim
+}
+
+func (h *HeaderState) Frame() int {
+	return h.frame
 }
 
 func (h *HeaderState) ToggleLock() {
@@ -289,7 +299,21 @@ func RenderHeader(version, os, arch string, width int, styles *Styles, state *He
 		showVersionLine = true
 	}
 
-	grid := buildAnimationGrid(headerSceneRows, sceneWidth, frame, mode, localF, true)
+	platformLabel := ""
+	platformRunes := []rune{}
+	platformRow := 0
+	platformLeft := 0
+	showPlatformInline := false
+	if os != "" && arch != "" {
+		platformLabel = os + "/" + arch
+		platformRunes = []rune(platformLabel)
+		if len(platformRunes)+2 <= sceneWidth {
+			platformLeft = sceneWidth - len(platformRunes)
+			showPlatformInline = true
+		}
+	}
+
+	grid := buildAnimationGrid(headerSceneRows, sceneWidth, frame, mode, localF, false)
 
 	// Render each scene row with the logo composited over the animated field.
 	for row := 0; row < headerSceneRows; row++ {
@@ -324,6 +348,16 @@ func RenderHeader(version, os, arch string, width int, styles *Styles, state *He
 				}
 				continue
 			}
+			if showVersionLine && row == versionRow {
+				lineBuilder.WriteRune(' ')
+				continue
+			}
+
+			if showPlatformInline && row == platformRow && col >= platformLeft {
+				r := platformRunes[col-platformLeft]
+				lineBuilder.WriteString(renderPlatformGlyph(r, styles.SubtleColor))
+				continue
+			}
 
 			if cell.ch == "" || cell.ch == " " {
 				lineBuilder.WriteRune(' ')
@@ -338,29 +372,6 @@ func RenderHeader(version, os, arch string, width int, styles *Styles, state *He
 		}
 
 		doc.WriteString(lineBuilder.String())
-		doc.WriteString("\n")
-	}
-
-	// Version + platform badge on the right
-	if (!showVersionLine && version != "") || os != "" {
-		var badge strings.Builder
-		if !showVersionLine && version != "" {
-			badge.WriteString(styles.VersionBadge.Render(version))
-		}
-		if os != "" && arch != "" {
-			if badge.Len() > 0 {
-				badge.WriteString(" ")
-			}
-			badge.WriteString(styles.PlatformBadge.Render(os + "/" + arch))
-		}
-
-		badgeStr := badge.String()
-		gap := width - lipgloss.Width(badgeStr) - 4
-		if gap < 2 {
-			gap = 2
-		}
-		doc.WriteString(strings.Repeat(" ", gap))
-		doc.WriteString(badgeStr)
 		doc.WriteString("\n")
 	}
 
@@ -382,7 +393,7 @@ func renderCompactHeader(version, os, arch string, width int, styles *Styles, st
 		localF = state.localFrame()
 	}
 
-	grid := buildAnimationGrid(compactHeaderRows, sceneWidth, frame, mode, localF, true)
+	grid := buildAnimationGrid(compactHeaderRows, sceneWidth, frame, mode, localF, false)
 	seedChromeBleed(grid[0], frame+23)
 
 	logoText := "shellkit"
@@ -541,54 +552,15 @@ func formatVersionLabel(version string) string {
 }
 
 func allAnimModes() []animMode {
-	return []animMode{
-		animWaveDots,
-		animParticles,
-		animSineLine,
-		animGradientRain,
-		animConstellations,
-		animWormhole,
-		animLaserShow,
-		animFireworks,
-		animPlasma,
-		animHyperspace,
-		animTimeRift,
-		animReactorPulse,
-		animAlienRun,
+	modes := make([]animMode, 0, len(animationCatalog))
+	for _, meta := range animationCatalog {
+		modes = append(modes, meta.mode)
 	}
+	return modes
 }
 
 func animModeID(mode animMode) string {
-	switch mode {
-	case animWaveDots:
-		return "wave-dots"
-	case animParticles:
-		return "particles"
-	case animSineLine:
-		return "sine-line"
-	case animGradientRain:
-		return "gradient-rain"
-	case animConstellations:
-		return "constellations"
-	case animWormhole:
-		return "wormhole"
-	case animLaserShow:
-		return "laser-show"
-	case animFireworks:
-		return "fireworks"
-	case animPlasma:
-		return "plasma"
-	case animHyperspace:
-		return "hyperspace"
-	case animTimeRift:
-		return "time-rift"
-	case animReactorPulse:
-		return "reactor-pulse"
-	case animAlienRun:
-		return "alien-run"
-	default:
-		return ""
-	}
+	return animationMeta(mode).id
 }
 
 func animModeFromID(id string) (animMode, bool) {
@@ -625,36 +597,7 @@ func enabledModesFromIDs(ids []string) []animMode {
 }
 
 func modeName(mode animMode) string {
-	switch mode {
-	case animWaveDots:
-		return "Wave Dots"
-	case animParticles:
-		return "Particles"
-	case animSineLine:
-		return "Sine Line"
-	case animGradientRain:
-		return "Gradient Rain"
-	case animConstellations:
-		return "Constellations"
-	case animWormhole:
-		return "Wormhole"
-	case animLaserShow:
-		return "Laser Show"
-	case animFireworks:
-		return "Fireworks"
-	case animPlasma:
-		return "Plasma"
-	case animHyperspace:
-		return "Hyperspace"
-	case animTimeRift:
-		return "Time Rift"
-	case animReactorPulse:
-		return "Reactor Pulse"
-	case animAlienRun:
-		return "Alien Run"
-	default:
-		return "Unknown"
-	}
+	return animationMeta(mode).name
 }
 
 func buildAnimationGrid(rows, w, frame int, mode animMode, localF int, applyFade bool) [][]animCell {
@@ -678,6 +621,16 @@ func buildAnimationGrid(rows, w, frame int, mode animMode, localF int, applyFade
 		renderGradientRain(grid, w, frame)
 	case animConstellations:
 		renderConstellations(grid, w, frame, localF)
+	case animAuroraDrift:
+		renderAuroraDrift(grid, w, frame)
+	case animTidalLines:
+		renderTidalLines(grid, w, frame)
+	case animMoonDrift:
+		renderMoonDrift(grid, w, frame)
+	case animSoftRain:
+		renderSoftRain(grid, w, frame)
+	case animLanternDrift:
+		renderLanternDrift(grid, w, frame)
 	case animWormhole:
 		renderWormhole(grid, w, frame)
 	case animLaserShow:
@@ -692,6 +645,8 @@ func buildAnimationGrid(rows, w, frame int, mode animMode, localF int, applyFade
 		renderTimeRift(grid, w, frame)
 	case animReactorPulse:
 		renderReactorPulse(grid, w, frame)
+	case animStarBattle:
+		renderStarBattle(grid, w, frame)
 	case animAlienRun:
 		renderAlienRun(grid, w, frame)
 	}
@@ -739,15 +694,7 @@ func renderLogoGlyph(r rune, baseFg color.Color, cell animCell, fallback color.C
 		glow = cell.customColor
 	}
 
-	strength := 0.0
-	switch {
-	case cell.bold:
-		strength = 0.14
-	case cell.dim:
-		strength = 0.04
-	case cell.ch != "" && cell.ch != " ":
-		strength = 0.08
-	}
+	strength := logoGlowStrength(cell)
 
 	style := lipgloss.NewStyle().
 		Foreground(mixColors(baseFg, glow, 0.06+strength)).
@@ -755,9 +702,43 @@ func renderLogoGlyph(r rune, baseFg color.Color, cell animCell, fallback color.C
 	return style.Render(string(r))
 }
 
+func logoGlowStrength(cell animCell) float64 {
+	switch {
+	case cell.ch == "" || cell.ch == " ":
+		return 0
+	case isSoftLogoWaveCell(cell.ch):
+		if cell.dim {
+			return 0.008
+		}
+		return 0.015
+	case cell.bold:
+		return 0.14
+	case cell.dim:
+		return 0.04
+	default:
+		return 0.08
+	}
+}
+
+func isSoftLogoWaveCell(ch string) bool {
+	switch ch {
+	case "~", "_", "-", "=", ".", ":", "░", "▒", "▓", "▁", "▂", "▃", "▄", "▅", "▆", "▇":
+		return true
+	default:
+		return false
+	}
+}
+
 func renderVersionGlyph(r rune, baseFg, glow color.Color) string {
 	return lipgloss.NewStyle().
 		Foreground(mixColors(baseFg, glow, 0.18)).
+		Faint(true).
+		Render(string(r))
+}
+
+func renderPlatformGlyph(r rune, fg color.Color) string {
+	return lipgloss.NewStyle().
+		Foreground(fg).
 		Faint(true).
 		Render(string(r))
 }

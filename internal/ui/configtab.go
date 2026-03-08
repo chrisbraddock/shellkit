@@ -5,6 +5,7 @@ import (
 	"strings"
 
 	tea "charm.land/bubbletea/v2"
+	"charm.land/lipgloss/v2"
 
 	"github.com/chrisbraddock/shellkit/internal/config"
 )
@@ -34,21 +35,29 @@ type configTabItem struct {
 
 // ConfigTab edits persisted TUI and header settings.
 type ConfigTab struct {
-	cfg      config.Config
-	settings config.UISettings
-	width    int
-	height   int
-	cursor   int
-	status   string
-	styles   *Styles
+	cfg          config.Config
+	settings     config.UISettings
+	width        int
+	height       int
+	cursor       int
+	status       string
+	styles       *Styles
+	previewMode  animMode
+	previewFrame int
 }
 
 // NewConfigTab creates the config tab.
 func NewConfigTab(cfg config.Config, settings config.UISettings, styles *Styles) ConfigTab {
+	previewMode := animWaveDots
+	if modes := allAnimModes(); len(modes) > 0 {
+		previewMode = modes[0]
+	}
+
 	return ConfigTab{
-		cfg:      cfg,
-		settings: settings,
-		styles:   styles,
+		cfg:         cfg,
+		settings:    settings,
+		styles:      styles,
+		previewMode: previewMode,
 	}
 }
 
@@ -56,6 +65,10 @@ func NewConfigTab(cfg config.Config, settings config.UISettings, styles *Styles)
 func (t *ConfigTab) AtTop() bool { return t.cursor == 0 }
 
 func (t *ConfigTab) SetStyles(s *Styles) { t.styles = s }
+
+func (t *ConfigTab) SetPreviewFrame(frame int) {
+	t.previewFrame = frame
+}
 
 func (t *ConfigTab) SetSettings(settings config.UISettings) {
 	t.settings = settings
@@ -89,8 +102,10 @@ func (t *ConfigTab) Update(msg tea.Msg) tea.Cmd {
 	case "down", "j":
 		t.cursor = clampInt(t.cursor+1, 0, len(items)-1)
 	case " ", "enter":
+		t.syncPreview(items[t.cursor])
 		return t.toggleCurrent(items[t.cursor])
 	}
+	t.syncPreview(items[t.cursor])
 	return nil
 }
 
@@ -108,9 +123,65 @@ func (t *ConfigTab) View() string {
 		return b.String()
 	}
 
+	if t.useSplitLayout() {
+		b.WriteString(t.renderSplitBody(items))
+		b.WriteString("\n\n")
+		b.WriteString(t.styles.HelpBar.Render("  up/down move · enter toggle · settings saved immediately"))
+		if t.status != "" {
+			b.WriteString("\n")
+			b.WriteString(t.styles.Info.Render("  " + t.status))
+		}
+		return b.String()
+	}
+
+	preview := t.renderPreview()
+	if preview != "" {
+		b.WriteString(preview)
+		b.WriteString("\n\n")
+	}
+
+	b.WriteString(t.renderConfigList(items, 0, true))
+
+	b.WriteString("\n")
+	b.WriteString(t.styles.HelpBar.Render("  up/down move · enter toggle · settings saved immediately"))
+	if t.status != "" {
+		b.WriteString("\n")
+		b.WriteString(t.styles.Info.Render("  " + t.status))
+	}
+
+	return b.String()
+}
+
+func (t *ConfigTab) renderSplitBody(items []configTabItem) string {
+	const gap = 4
+
+	leftWidth := clampInt(t.width/3, 28, 46)
+	rightWidth := maxInt(36, t.width-leftWidth-gap-4)
+
+	left := t.renderPreviewAtWidth(leftWidth)
+	right := t.renderConfigList(items, rightWidth, false)
+
+	return lipgloss.JoinHorizontal(
+		lipgloss.Top,
+		left,
+		strings.Repeat(" ", gap),
+		right,
+	)
+}
+
+func (t *ConfigTab) renderConfigList(items []configTabItem, contentWidth int, previewConsumesHeight bool) string {
+	var b strings.Builder
+
 	visible := len(items)
 	if t.height > 0 {
-		visible = clampInt(t.height-8, 6, len(items))
+		reserved := 8
+		if previewConsumesHeight {
+			preview := t.renderPreview()
+			if preview != "" {
+				reserved += strings.Count(preview, "\n") + 2
+			}
+		}
+		visible = clampInt(t.height-reserved, 6, len(items))
 	}
 	start := 0
 	if t.cursor >= visible {
@@ -119,7 +190,7 @@ func (t *ConfigTab) View() string {
 	end := minInt(len(items), start+visible)
 
 	section := ""
-	for i := start; i < end; i++ {
+	for i := start; i < end; {
 		item := items[i]
 		if item.section != section {
 			if i > start {
@@ -130,31 +201,22 @@ func (t *ConfigTab) View() string {
 			section = item.section
 		}
 
-		cursor := "  "
-		if i == t.cursor {
-			cursor = "> "
-		}
-		lineStyle := t.styles.Subtle
-		if i == t.cursor {
-			lineStyle = t.styles.Highlight
+		sectionEnd := i + 1
+		for sectionEnd < end && items[sectionEnd].section == item.section {
+			sectionEnd++
 		}
 
-		checked := "[ ]"
-		if t.itemEnabled(item) {
-			checked = "[x]"
+		if t.useTwoColumnAnimations(contentWidth) && item.kind == configToggleAnimation && sectionEnd-i > 1 {
+			b.WriteString(t.renderAnimationColumns(items[i:sectionEnd], i, contentWidth))
+			b.WriteString("\n")
+		} else {
+			for idx := i; idx < sectionEnd; idx++ {
+				b.WriteString(t.renderItemBlock(items[idx], idx, contentWidth))
+				b.WriteString("\n")
+			}
 		}
 
-		b.WriteString(lineStyle.Render("  " + cursor + checked + " " + item.label))
-		b.WriteString("\n")
-		b.WriteString(t.styles.Subtle.Render("      " + item.description))
-		b.WriteString("\n")
-	}
-
-	b.WriteString("\n")
-	b.WriteString(t.styles.HelpBar.Render("  up/down move · enter toggle · settings saved immediately"))
-	if t.status != "" {
-		b.WriteString("\n")
-		b.WriteString(t.styles.Info.Render("  " + t.status))
+		i = sectionEnd
 	}
 
 	return b.String()
@@ -199,15 +261,123 @@ func (t *ConfigTab) items() []configTabItem {
 
 	for _, mode := range allAnimModes() {
 		items = append(items, configTabItem{
-			section:     "Animations",
+			section:     animationSection(mode),
 			kind:        configToggleAnimation,
 			mode:        mode,
 			label:       modeName(mode),
-			description: "Include this background in auto-rotate and random startup selection.",
+			description: modeDescription(mode),
 		})
 	}
 
 	return items
+}
+
+func (t *ConfigTab) syncPreview(item configTabItem) {
+	if item.kind == configToggleAnimation {
+		t.previewMode = item.mode
+	}
+}
+
+func (t *ConfigTab) renderPreview() string {
+	panelWidth := 52
+	if t.width > 0 {
+		panelWidth = clampInt(t.width-4, 28, 58)
+	}
+	return t.renderPreviewAtWidth(panelWidth)
+}
+
+func (t *ConfigTab) renderPreviewAtWidth(panelWidth int) string {
+	innerWidth := clampInt(panelWidth-4, 20, 54)
+
+	body := renderPreviewTitle(t.previewMode, t.styles) + "\n" +
+		renderAnimationPreview(t.previewMode, innerWidth, t.previewFrame+11, t.styles)
+
+	return t.styles.Preview.Width(panelWidth).Render(body)
+}
+
+func (t *ConfigTab) useSplitLayout() bool {
+	return t.width >= 110
+}
+
+func (t *ConfigTab) useTwoColumnAnimations(contentWidth int) bool {
+	return contentWidth >= 72
+}
+
+func (t *ConfigTab) renderAnimationColumns(items []configTabItem, startIndex, contentWidth int) string {
+	const gap = 4
+
+	availableWidth := maxInt(60, contentWidth-2)
+	colWidth := maxInt(28, (availableWidth-gap)/2)
+	mid := (len(items) + 1) / 2
+
+	var b strings.Builder
+	for row := 0; row < mid; row++ {
+		left := t.renderItemBlock(items[row], startIndex+row, colWidth)
+		right := blankConfigItemBlock(colWidth)
+		if row+mid < len(items) {
+			right = t.renderItemBlock(items[row+mid], startIndex+row+mid, colWidth)
+		}
+
+		b.WriteString(lipgloss.JoinHorizontal(
+			lipgloss.Top,
+			left,
+			strings.Repeat(" ", gap),
+			right,
+		))
+		if row < mid-1 {
+			b.WriteString("\n")
+		}
+	}
+
+	return b.String()
+}
+
+func (t *ConfigTab) renderItemBlock(item configTabItem, index, width int) string {
+	cursor := "  "
+	if index == t.cursor {
+		cursor = "> "
+	}
+	lineStyle := t.styles.Subtle
+	if index == t.cursor {
+		lineStyle = t.styles.Highlight
+	}
+
+	checked := "[ ]"
+	if t.itemEnabled(item) {
+		checked = "[x]"
+	}
+
+	label := "  " + cursor + checked + " " + item.label
+	desc := "      " + truncateConfigText(item.description, maxInt(20, width-6))
+
+	if width <= 0 {
+		return lineStyle.Render(label) + "\n" + t.styles.Subtle.Render(desc)
+	}
+
+	return lineStyle.Width(width).Render(label) + "\n" +
+		t.styles.Subtle.Width(width).Render(desc)
+}
+
+func blankConfigItemBlock(width int) string {
+	if width <= 0 {
+		return " \n "
+	}
+	style := lipgloss.NewStyle().Width(width)
+	return style.Render(" ") + "\n" + style.Render(" ")
+}
+
+func truncateConfigText(text string, width int) string {
+	if width <= 0 {
+		return ""
+	}
+	runes := []rune(text)
+	if len(runes) <= width {
+		return text
+	}
+	if width <= 3 {
+		return string(runes[:width])
+	}
+	return string(runes[:width-3]) + "..."
 }
 
 func (t *ConfigTab) itemEnabled(item configTabItem) bool {

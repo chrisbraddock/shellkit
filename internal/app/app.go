@@ -160,6 +160,7 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 	case ui.AnimTickMsg:
 		cmd := m.headerState.Update(msg)
+		m.configTab.SetPreviewFrame(m.headerState.Frame())
 		return m, cmd
 
 	case tea.BackgroundColorMsg:
