@@ -61,15 +61,16 @@ func animTick() tea.Cmd {
 
 // HeaderState holds animation state for the header.
 type HeaderState struct {
-	frame        int
-	width        int
-	styles       *Styles
-	locked       bool
-	lockedMode   animMode
-	compact      bool
-	showVersion  bool
-	showPlatform bool
-	enabledModes []animMode
+	frame                int
+	width                int
+	styles               *Styles
+	locked               bool
+	lockedMode           animMode
+	compact              bool
+	showVersion          bool
+	showPlatform         bool
+	showCompactTabAccent bool
+	enabledModes         []animMode
 }
 
 func NewHeaderState(styles *Styles, settings config.UISettings) HeaderState {
@@ -181,6 +182,7 @@ func (h *HeaderState) LineCount() int {
 func (h *HeaderState) ApplySettings(settings config.UISettings, syncCompact bool) {
 	h.showVersion = settings.Header.ShowVersion
 	h.showPlatform = settings.Header.ShowPlatform
+	h.showCompactTabAccent = settings.Header.ShowCompactTabAccent
 	h.enabledModes = enabledModesFromIDs(settings.Header.EnabledAnimations)
 	if syncCompact {
 		h.compact = settings.Header.StartCollapsed

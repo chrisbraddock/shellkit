@@ -23,19 +23,26 @@ var TabNames = []string{
 // TabBarLineCount returns the rendered height of the tab chrome.
 func TabBarLineCount(state *HeaderState) int {
 	if state != nil && state.IsCompact() {
-		return 3
+		if state.showCompactTabAccent {
+			return 3
+		}
+		return 2
 	}
 	return 2
+}
+
+func showCompactTabAccent(state *HeaderState) bool {
+	if state == nil || !state.IsCompact() {
+		return false
+	}
+	return state.showCompactTabAccent
 }
 
 // RenderTabBar renders a mode-synced animated tab bar with a full-width bleed strip.
 func RenderTabBar(activeIdx int, focused bool, width int, styles *Styles, state *HeaderState) string {
 	lineWidth := width - 2 // account for doc padding
 	if lineWidth <= 0 {
-		if state != nil && state.IsCompact() {
-			return "\n\n\n"
-		}
-		return "\n\n"
+		return strings.Repeat("\n", TabBarLineCount(state))
 	}
 
 	frame := 0
@@ -53,16 +60,20 @@ func RenderTabBar(activeIdx int, focused bool, width int, styles *Styles, state 
 	overlayTabs(grid[0], activeIdx, focused, width, styles)
 
 	baseColors := lipgloss.Blend1D(lineWidth, styles.GradientStart, styles.GradientEnd)
+	compact := state != nil && state.IsCompact()
+	showAccent := !compact || showCompactTabAccent(state)
 
 	var doc strings.Builder
-	if state != nil && state.IsCompact() {
+	if compact {
 		doc.WriteString(renderStaticDivider(lineWidth, styles))
 		doc.WriteString("\n")
 	}
 	doc.WriteString(renderTabRow(grid[0], baseColors))
 	doc.WriteString("\n")
-	doc.WriteString(renderAccentRow(grid[1], baseColors))
-	doc.WriteString("\n")
+	if showAccent {
+		doc.WriteString(renderAccentRow(grid[1], baseColors))
+		doc.WriteString("\n")
+	}
 	return doc.String()
 }
 

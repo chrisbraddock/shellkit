@@ -152,6 +152,7 @@ func (m *Model) syncContentSize() {
 	m.search.SetSize(contentW, contentH)
 	m.dashboard.SetSize(contentW, contentH)
 	m.doctor.SetSize(contentW, contentH)
+	m.configTab.SetSize(contentW, contentH)
 }
 
 func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
@@ -179,6 +180,7 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		m.settings = msg.Settings
 		m.headerState.ApplySettings(msg.Settings, false)
 		m.configTab.SetSettings(msg.Settings)
+		m.syncContentSize()
 		return m, nil
 
 	case packagesLoadedMsg:

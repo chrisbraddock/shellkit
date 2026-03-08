@@ -13,19 +13,20 @@ type UISettings struct {
 
 // HeaderSettings stores persisted header and animation preferences.
 type HeaderSettings struct {
-	StartCollapsed      bool     `json:"start_collapsed"`
-	ShowVersion         bool     `json:"show_version"`
-	ShowPlatform        bool     `json:"show_platform"`
-	ShowCompactTabAccent bool    `json:"show_compact_tab_accent"`
-	EnabledAnimations   []string `json:"enabled_animations,omitempty"`
+	StartCollapsed       bool     `json:"start_collapsed"`
+	ShowVersion          bool     `json:"show_version"`
+	ShowPlatform         bool     `json:"show_platform"`
+	ShowCompactTabAccent bool     `json:"show_compact_tab_accent"`
+	EnabledAnimations    []string `json:"enabled_animations,omitempty"`
 }
 
 // DefaultUISettings returns the baseline TUI settings.
 func DefaultUISettings() UISettings {
 	return UISettings{
 		Header: HeaderSettings{
-			ShowVersion:  true,
-			ShowPlatform: true,
+			ShowVersion:          true,
+			ShowPlatform:         true,
+			ShowCompactTabAccent: false,
 		},
 	}
 }

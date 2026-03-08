@@ -20,6 +20,7 @@ const (
 	configToggleCollapsed configItemKind = iota
 	configToggleVersion
 	configTogglePlatform
+	configToggleCompactAccent
 	configToggleAnimation
 )
 
@@ -188,6 +189,12 @@ func (t *ConfigTab) items() []configTabItem {
 			label:       "Show platform",
 			description: "Show the current OS and architecture in the header chrome.",
 		},
+		{
+			section:     "Compact Mode",
+			kind:        configToggleCompactAccent,
+			label:       "Show animated tab accent",
+			description: "Collapsed mode keeps the extra animated line below the navigation tabs.",
+		},
 	}
 
 	for _, mode := range allAnimModes() {
@@ -211,6 +218,8 @@ func (t *ConfigTab) itemEnabled(item configTabItem) bool {
 		return t.settings.Header.ShowVersion
 	case configTogglePlatform:
 		return t.settings.Header.ShowPlatform
+	case configToggleCompactAccent:
+		return t.settings.Header.ShowCompactTabAccent
 	case configToggleAnimation:
 		return t.animationEnabled(item.mode)
 	default:
@@ -254,6 +263,8 @@ func (t *ConfigTab) toggleCurrent(item configTabItem) tea.Cmd {
 		t.settings.Header.ShowVersion = !t.settings.Header.ShowVersion
 	case configTogglePlatform:
 		t.settings.Header.ShowPlatform = !t.settings.Header.ShowPlatform
+	case configToggleCompactAccent:
+		t.settings.Header.ShowCompactTabAccent = !t.settings.Header.ShowCompactTabAccent
 	case configToggleAnimation:
 		if !t.toggleAnimation(item.mode) {
 			return nil
