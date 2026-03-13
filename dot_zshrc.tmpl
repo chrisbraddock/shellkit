@@ -11,13 +11,15 @@ typeset -gF SHELLKIT_ZSH_START=$EPOCHREALTIME
 # Auto-start tmux (full profile only)
 # ------------------------------------------------------------
 {{ if eq .profile "full" -}}
-if [[ -z "$TMUX" ]] && command -v tmux &>/dev/null \
+if [[ -z "$TMUX" ]] && [[ -z "$_SHELLKIT_RC_SOURCED" ]] \
+   && command -v tmux &>/dev/null \
    && [[ "$TERM_PROGRAM" != "vscode" ]] \
    && [[ -z "$INSIDE_EMACS" ]] \
    && [[ -z "$ZELLIJ" ]]; then
     exec tmux new-session -A -s main
 fi
 {{- end }}
+typeset -g _SHELLKIT_RC_SOURCED=1
 
 # ------------------------------------------------------------
 # Powerlevel10k Instant Prompt (must be at top)
