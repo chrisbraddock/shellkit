@@ -47,6 +47,11 @@ bind C-b send-prefix
 # --- Reload config ------------------------------------------
 bind r source-file ~/.tmux.conf \; display-message "tmux.conf reloaded"
 
+# --- Pane borders (visible borders make drag-resize easier) --
+set -g pane-border-style "fg=colour240"
+set -g pane-active-border-style "fg=green,bold"
+set -g pane-border-lines heavy
+
 # --- Status line --------------------------------------------
 set -g status on
 set -g status-interval 2
