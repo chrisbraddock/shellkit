@@ -307,8 +307,11 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		}
 	}
 
-	// Dispatch to active tab content (only when content focused)
-	if !m.tabFocused {
+	// Always dispatch mouse events to active tab (scroll should work regardless of focus)
+	_, isMouse := msg.(tea.MouseMsg)
+
+	// Dispatch to active tab content when content focused or on mouse events
+	if !m.tabFocused || isMouse {
 		var cmd tea.Cmd
 		switch m.activeTab {
 		case tabAliases:
