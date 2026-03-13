@@ -49,6 +49,8 @@ flowchart LR
 | 🔐 **Secret management** | Per-directory env vars with direnv + 1Password CLI |
 | 📂 **File Explorer** | nvim-tree sidebar with auto-open, git status, and icons (neovim) |
 | 📋 **Copy Claude Plan** | iTerm2 hotkey to copy Claude Code plan blocks to clipboard (macOS, full profile) |
+| 🖥️ **tmux auto-start** | Auto-launches tmux on new shells with per-repo workspace isolation in cmux |
+| 📝 **Markdown preview** | Live preview with Mermaid.js diagram rendering in Neovim |
 
 ## 📥 Installation
 
@@ -111,6 +113,7 @@ Select your profile during `chezmoi init`.
 ```
 shellkit/
 ├── dot_zshrc.tmpl              # Main Zsh config (chezmoi template)
+├── dot_tmux.conf.tmpl          # tmux config (splits, vim-nav, persistence)
 ├── dot_zsh_plugins.txt         # Antidote plugin list
 ├── dot_p10k.zsh                # Powerlevel10k theme config
 ├── dot_gitconfig.tmpl          # Git configuration
@@ -123,11 +126,14 @@ shellkit/
 │   ├── aliases/
 │   │   ├── git.zsh             # Git shortcuts (gs, gc, gd, etc.)
 │   │   ├── system.zsh.tmpl     # File/network helpers (ll, etc.)
+│   │   ├── tmux.zsh            # tmux session/window/pane aliases
 │   │   └── tools.zsh           # Editor and tool aliases
 │   ├── functions/              # Shell utilities and git helpers
 │   │   ├── shellkit            # Shellkit management (update, edit, diff)
 │   │   ├── mon                 # System monitoring launcher
 │   │   ├── reload              # Reload shell configuration
+│   │   ├── sshx                # SSH with automatic tmux attach
+│   │   ├── tw                  # Per-repo tmux workspace (isolated socket)
 │   │   ├── sudo-biometrics     # Biometric sudo setup
 │   │   └── git-*               # Git helper functions
 │   ├── completion.zsh          # Completion styles
@@ -353,9 +359,42 @@ secrets op-login
 | `mon` | System monitoring (`mon cpu`, `mon gpu`, `mon net`\*, `mon disk`\*) |
 | `sudo-biometrics` | Biometric sudo auth (`status`, `enable`, `disable`, `test`) |
 | `secrets` | Secret management (`status`, `init`, `edit`, `allow`, `op-login`) |
+| `sshx` | SSH with automatic tmux attach on remote |
+| `tw` | Per-repo tmux workspace with isolated socket |
 | `wimip` | Show machine's IP address |
 
 \* Requires sudo
+
+### 🖥️ tmux
+
+tmux auto-starts on new shells (full profile) with these key features:
+
+| Feature | Description |
+|:--------|:------------|
+| **Auto-start** | New shells launch into tmux automatically |
+| **cmux isolation** | Each cmux tab gets an isolated tmux socket — no session collisions |
+| **SSH auto-attach** | SSH to `.home.lan` hosts auto-attaches tmux |
+| **Per-repo workspaces** | `tw <path>` creates an isolated tmux workspace per repository |
+| **Nested tmux** | `Ctrl-b Ctrl-b` sends prefix to inner tmux (SSH sessions) |
+| **Session persistence** | tmux-resurrect + tmux-continuum auto-saves every 10 minutes |
+| **Mouse support** | Click panes, drag borders to resize, scroll with mouse wheel |
+
+<details>
+<summary><strong>tmux Aliases</strong></summary>
+
+| Alias | Description |
+|:------|:------------|
+| `ta` | Attach to most recent session |
+| `tas <name>` | Attach to named session |
+| `tad` | Attach and detach other clients |
+| `tns <name>` | New named session |
+| `tls` | List sessions |
+| `tks <name>` | Kill named session |
+| `tkill` | Kill entire tmux server |
+| `tlw` | List windows |
+| `tlp` | List panes |
+
+</details>
 
 ### ⌨️ System Aliases
 

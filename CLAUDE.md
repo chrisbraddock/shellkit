@@ -35,7 +35,20 @@ shellkit/
 - **Packages**: Define in `.chezmoidata/packages.yaml`
 - **iTerm2 scripts**: Add to `iterm2/`, deployed to AutoLaunch via `run_onchange_after_deploy-iterm2-scripts.sh.tmpl`
 - **Neovim plugins**: Add plugin specs to `dot_config/nvim/lua/plugins.lua`, config to `dot_config/nvim/lua/plugin/`
+- **tmux config**: Edit `dot_tmux.conf.tmpl`, supports `~/.tmux.conf.local` for overrides
 - **Local overrides**: Users can create `~/.zshrc.local` for machine-specific config (not managed by chezmoi)
+
+## tmux Integration
+
+tmux auto-starts on new shells (full profile). Key behaviors:
+
+- **Local terminals**: Attaches to shared `main` session on the default socket
+- **cmux tabs**: Each tab gets an isolated tmux socket (`ws_<dirname>`) based on working directory, preventing session collisions across repos
+- **SSH (`.home.lan`)**: Auto-attaches via `RemoteCommand` in SSH config
+- **Skipped in**: VS Code terminals, Emacs, Zellij
+- **Nested tmux**: `Ctrl-b Ctrl-b` sends prefix to inner tmux (SSH sessions)
+- **`tw <path>`**: Manually open a per-repo tmux workspace with isolated socket
+- **`sshx <host>`**: SSH with automatic tmux attach on remote
 
 ## Development Commands
 
