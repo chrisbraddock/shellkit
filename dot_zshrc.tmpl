@@ -36,7 +36,7 @@ fi
 # ------------------------------------------------------------
 
 # History — fully isolated per shell session
-HISTFILE="${ZDOTDIR:-$HOME}/.zsh_history.$$"
+HISTFILE="$HOME/.zsh_history.$$"
 HISTSIZE=50000
 SAVEHIST=50000
 
@@ -54,7 +54,7 @@ setopt INC_APPEND_HISTORY        # Add commands immediately (for crash protectio
 # Merge session history into main file on exit, then clean up
 autoload -Uz add-zsh-hook
 _shellkit_merge_history() {
-    local main="${ZDOTDIR:-$HOME}/.zsh_history"
+    local main="$HOME/.zsh_history"
     [[ -f "$HISTFILE" ]] || return 0
     # Append session history to main file
     fc -W "$HISTFILE"
@@ -87,8 +87,8 @@ setopt IGNORE_EOF                # Don't exit on Ctrl-D
 # OS Detection & Paths
 # ------------------------------------------------------------
 
-source "${ZDOTDIR:-$HOME}/.zsh/os-detect.zsh"
-source "${ZDOTDIR:-$HOME}/.zsh/paths.zsh"
+source "$HOME/.zsh/os-detect.zsh"
+source "$HOME/.zsh/paths.zsh"
 
 {{- if eq .profile "full" }}
 # ------------------------------------------------------------
@@ -100,15 +100,15 @@ if [[ -f "${HOMEBREW_PREFIX:-/opt/homebrew}/opt/antidote/share/antidote/antidote
     ANTIDOTE_HOME="${HOMEBREW_PREFIX:-/opt/homebrew}/opt/antidote/share/antidote"
 elif [[ -f "/home/linuxbrew/.linuxbrew/opt/antidote/share/antidote/antidote.zsh" ]]; then
     ANTIDOTE_HOME="/home/linuxbrew/.linuxbrew/opt/antidote/share/antidote"
-elif [[ -f "${ZDOTDIR:-$HOME}/.antidote/antidote.zsh" ]]; then
-    ANTIDOTE_HOME="${ZDOTDIR:-$HOME}/.antidote"
+elif [[ -f "$HOME/.antidote/antidote.zsh" ]]; then
+    ANTIDOTE_HOME="$HOME/.antidote"
 fi
 
 if [[ -n "$ANTIDOTE_HOME" ]]; then
     source "${ANTIDOTE_HOME}/antidote.zsh"
 
     # Generate static plugin file if needed (or if antidote was upgraded)
-    zsh_plugins="${ZDOTDIR:-$HOME}/.zsh_plugins"
+    zsh_plugins="$HOME/.zsh_plugins"
     if [[ ! "${zsh_plugins}.zsh" -nt "${zsh_plugins}.txt" ]] || \
        ! grep -q "$ANTIDOTE_HOME" "${zsh_plugins}.zsh" 2>/dev/null; then
         antidote bundle <"${zsh_plugins}.txt" >"${zsh_plugins}.zsh"
@@ -129,13 +129,13 @@ fi
 
 # Initialize completion (with caching for speed)
 autoload -Uz compinit
-if [[ -n "${ZDOTDIR:-$HOME}/.zcompdump"(N.mh-24) ]]; then
+if [[ -n "$HOME/.zcompdump"(N.mh-24) ]]; then
     compinit -C  # Cache exists and fresh, skip security check
 else
     compinit     # Cache missing or stale, regenerate with security check
 fi
 
-source "${ZDOTDIR:-$HOME}/.zsh/completion.zsh"
+source "$HOME/.zsh/completion.zsh"
 
 # ------------------------------------------------------------
 # Tool Integrations
@@ -157,8 +157,8 @@ fi
 {{- if .install_fzf }}
 
 # FZF (fuzzy finder)
-if [[ -f "${ZDOTDIR:-$HOME}/.fzf.zsh" ]]; then
-    source "${ZDOTDIR:-$HOME}/.fzf.zsh"
+if [[ -f "$HOME/.fzf.zsh" ]]; then
+    source "$HOME/.fzf.zsh"
 elif command -v fzf &>/dev/null; then
     eval "$(fzf --zsh)"
 fi
@@ -173,7 +173,7 @@ fi
 # Aliases
 # ------------------------------------------------------------
 
-for alias_file in "${ZDOTDIR:-$HOME}/.zsh/aliases"/*.zsh; do
+for alias_file in "$HOME/.zsh/aliases"/*.zsh; do
     [[ -f "$alias_file" ]] && source "$alias_file"
 done
 
@@ -182,7 +182,7 @@ done
 # ------------------------------------------------------------
 
 # Add functions to fpath for autoloading
-fpath=("${ZDOTDIR:-$HOME}/.zsh/functions" $fpath)
+fpath=("$HOME/.zsh/functions" $fpath)
 
 # Autoload shellkit functions
 autoload -Uz shellkit reload sshx git-delete-local-merged git-all git-amend git-credit git-undo git-promote git-up
@@ -222,12 +222,12 @@ fi
 {{- if eq .profile "full" }}
 # AI command prompt (Alt-A: describe in English, get shell command)
 if command -v claude &>/dev/null; then
-    source "${ZDOTDIR:-$HOME}/.zsh/ai-prompt.zsh"
+    source "$HOME/.zsh/ai-prompt.zsh"
 fi
 
 # Pet snippet manager (Ctrl-S: search and insert snippets)
 if command -v pet &>/dev/null; then
-    source "${ZDOTDIR:-$HOME}/.zsh/pet-select.zsh"
+    source "$HOME/.zsh/pet-select.zsh"
 fi
 {{- end }}
 
@@ -235,7 +235,7 @@ fi
 # Powerlevel10k Configuration (must be at end)
 # ------------------------------------------------------------
 
-[[ -f "${ZDOTDIR:-$HOME}/.p10k.zsh" ]] && source "${ZDOTDIR:-$HOME}/.p10k.zsh"
+[[ -f "$HOME/.p10k.zsh" ]] && source "$HOME/.p10k.zsh"
 
 # ------------------------------------------------------------
 # iTerm2 Shell Integration (macOS)
@@ -278,4 +278,4 @@ add-zsh-hook precmd _shellkit_record_startup
 # conflict with shellkit updates. This file is sourced last,
 # so it can override any settings above.
 
-[[ -f "${ZDOTDIR:-$HOME}/.zshrc.local" ]] && source "${ZDOTDIR:-$HOME}/.zshrc.local"
+[[ -f "$HOME/.zshrc.local" ]] && source "$HOME/.zshrc.local"
