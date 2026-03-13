@@ -15,7 +15,8 @@ if [[ -z "$TMUX" ]] && [[ -z "$_SHELLKIT_RC_SOURCED" ]] \
    && command -v tmux &>/dev/null \
    && [[ "$TERM_PROGRAM" != "vscode" ]] \
    && [[ -z "$INSIDE_EMACS" ]] \
-   && [[ -z "$ZELLIJ" ]]; then
+   && [[ -z "$ZELLIJ" ]] \
+   && [[ -z "$CMUX_WORKSPACE_ID" ]]; then
     exec tmux new-session -A -s main
 fi
 {{- end }}
