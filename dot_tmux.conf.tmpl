@@ -41,6 +41,9 @@ bind-key -T copy-mode-vi y send-keys -X copy-pipe-and-cancel "xclip -selection c
 bind-key -T copy-mode-vi Enter send-keys -X copy-pipe-and-cancel "xclip -selection clipboard"
 {{- end }}
 
+# --- Nested tmux (press prefix twice to send to inner) ------
+bind C-b send-prefix
+
 # --- Reload config ------------------------------------------
 bind r source-file ~/.tmux.conf \; display-message "tmux.conf reloaded"
 

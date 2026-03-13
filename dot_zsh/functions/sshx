@@ -1,7 +1,14 @@
 #!/usr/bin/env zsh
-# sshx - SSH with automatic tmux attach
-# Usage: sshx <host> [ssh-args...]
+# sshx - SSH with automatic tmux attach (with fallback)
+# Usage: sshx <host> [session-name] [ssh-args...]
 
-local host="${1:?usage: sshx <host> [ssh-args...]}"
+local host="${1:?usage: sshx <host> [session-name] [ssh-args...]}"
 shift
-ssh "$host" "$@" -t "tmux new-session -A -s main"
+
+local session="main"
+if [[ $# -gt 0 && "$1" != -* ]]; then
+    session="$1"
+    shift
+fi
+
+ssh -t "$host" "$@" "command -v tmux >/dev/null && exec tmux new-session -A -s $session || exec \$SHELL -l"

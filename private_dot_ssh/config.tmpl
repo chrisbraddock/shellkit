@@ -58,6 +58,15 @@ Host gitlab.home.lan
     IdentityFile ~/.ssh/{{ .identities.personal.sshKey }}
 
 # ============================================================
+# Personal Network — auto-attach tmux on SSH
+# ============================================================
+{{ if eq .profile "full" -}}
+Host *.home.lan !gitlab.home.lan
+    RequestTTY yes
+    RemoteCommand tmux new-session -A -s main
+{{- end }}
+
+# ============================================================
 # Bitbucket (personal)
 # ============================================================
 Host bitbucket.org

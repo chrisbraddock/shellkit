@@ -8,6 +8,18 @@
 typeset -gF SHELLKIT_ZSH_START=$EPOCHREALTIME
 
 # ------------------------------------------------------------
+# Auto-start tmux (full profile only)
+# ------------------------------------------------------------
+{{ if eq .profile "full" -}}
+if [[ -z "$TMUX" ]] && command -v tmux &>/dev/null \
+   && [[ "$TERM_PROGRAM" != "vscode" ]] \
+   && [[ -z "$INSIDE_EMACS" ]] \
+   && [[ -z "$ZELLIJ" ]]; then
+    exec tmux new-session -A -s main
+fi
+{{- end }}
+
+# ------------------------------------------------------------
 # Powerlevel10k Instant Prompt (must be at top)
 # ------------------------------------------------------------
 typeset -g POWERLEVEL9K_INSTANT_PROMPT=quiet
