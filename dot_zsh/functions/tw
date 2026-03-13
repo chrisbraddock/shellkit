@@ -1,0 +1,23 @@
+#!/usr/bin/env zsh
+# tw - tmux workspace: per-repo tmux session with isolated socket
+# Usage: tw [path]   (defaults to current directory)
+#
+# Each repo gets its own tmux server socket, preventing session
+# collisions when multiple repos are open simultaneously.
+# Idempotent: re-running attaches to the existing session.
+
+local repo_path="${1:-.}"
+repo_path="${repo_path:A}"  # resolve to absolute path
+
+local repo_name="${repo_path:t}"
+# sanitize for socket name
+repo_name="${repo_name//[^[:alnum:]]/_}"
+
+local socket="ws_${repo_name}"
+local session="main"
+
+if ! tmux -L "$socket" has-session -t "$session" 2>/dev/null; then
+    tmux -L "$socket" new-session -d -s "$session" -c "$repo_path"
+fi
+
+exec tmux -L "$socket" attach -t "$session"
