@@ -85,6 +85,16 @@ tmux is hierarchical — think of it like a workspace manager:
 | ` + "`Ctrl-b Space`" + ` | Cycle pane layouts |
 | Mouse drag | Resize pane borders |
 
+## Snippets
+| Key / Command | Description |
+|---------------|-------------|
+| ` + "`Ctrl-b S`" + ` | fzf pick snippet → paste into pane |
+| ` + "`snip new <name>`" + ` | Create a new snippet |
+| ` + "`snip edit <name>`" + ` | Edit an existing snippet |
+| ` + "`snip rm <name>`" + ` | Delete a snippet |
+| ` + "`snip cp <name>`" + ` | Copy snippet to clipboard |
+| ` + "`snip`" + ` | Browse all snippets (fzf) |
+
 ## Copy Mode (vi)
 | Key | Description |
 |-----|-------------|

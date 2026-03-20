@@ -1,0 +1,84 @@
+#!/usr/bin/env zsh
+# snip - tmux snippet manager
+# Usage: snip [command] [name]
+#
+# Commands:
+#   (none)        Browse snippets with fzf (preview)
+#   new <name>    Create a new snippet
+#   edit <name>   Edit an existing snippet
+#   rm <name>     Delete a snippet
+#   cat <name>    Print snippet to stdout
+#   cp <name>     Copy snippet to clipboard
+#   paste         fzf pick → paste into tmux pane
+#   list          List all snippet names
+
+local snippets_dir="${HOME}/.tmux/snippets"
+[[ -d "$snippets_dir" ]] || mkdir -p "$snippets_dir"
+
+local cmd="${1:-}"
+local name="${2:-}"
+
+case "$cmd" in
+    new)
+        [[ -z "$name" ]] && { echo "usage: snip new <name>"; return 1; }
+        ${EDITOR:-vim} "${snippets_dir}/${name}"
+        ;;
+    edit)
+        [[ -z "$name" ]] && { echo "usage: snip edit <name>"; return 1; }
+        [[ -f "${snippets_dir}/${name}" ]] || { echo "snippet not found: $name"; return 1; }
+        ${EDITOR:-vim} "${snippets_dir}/${name}"
+        ;;
+    rm)
+        [[ -z "$name" ]] && { echo "usage: snip rm <name>"; return 1; }
+        [[ -f "${snippets_dir}/${name}" ]] || { echo "snippet not found: $name"; return 1; }
+        rm "${snippets_dir}/${name}"
+        echo "deleted: $name"
+        ;;
+    cat)
+        [[ -z "$name" ]] && { echo "usage: snip cat <name>"; return 1; }
+        [[ -f "${snippets_dir}/${name}" ]] || { echo "snippet not found: $name"; return 1; }
+        cat "${snippets_dir}/${name}"
+        ;;
+    cp)
+        [[ -z "$name" ]] && { echo "usage: snip cp <name>"; return 1; }
+        [[ -f "${snippets_dir}/${name}" ]] || { echo "snippet not found: $name"; return 1; }
+        if command -v pbcopy &>/dev/null; then
+            cat "${snippets_dir}/${name}" | pbcopy
+        elif command -v xclip &>/dev/null; then
+            cat "${snippets_dir}/${name}" | xclip -selection clipboard
+        else
+            echo "no clipboard command found"; return 1
+        fi
+        echo "copied: $name"
+        ;;
+    paste)
+        if [[ -z "$TMUX" ]]; then
+            echo "not in a tmux session"; return 1
+        fi
+        local pick
+        pick=$(ls -1 "$snippets_dir" 2>/dev/null | fzf --preview "cat ${snippets_dir}/{}" --preview-window=right:60%:wrap --prompt="snippet> ")
+        [[ -z "$pick" ]] && return 0
+        tmux load-buffer "${snippets_dir}/${pick}"
+        tmux paste-buffer
+        ;;
+    list)
+        ls -1 "$snippets_dir" 2>/dev/null
+        ;;
+    "")
+        # Default: browse with fzf preview
+        local pick
+        pick=$(ls -1 "$snippets_dir" 2>/dev/null | fzf --preview "cat ${snippets_dir}/{}" --preview-window=right:60%:wrap --prompt="snippet> ")
+        [[ -z "$pick" ]] && return 0
+        echo "${snippets_dir}/${pick}"
+        ;;
+    *)
+        # Treat as a name lookup shortcut: snip <name> → cat
+        if [[ -f "${snippets_dir}/${cmd}" ]]; then
+            cat "${snippets_dir}/${cmd}"
+        else
+            echo "unknown command or snippet: $cmd"
+            echo "usage: snip [new|edit|rm|cat|cp|paste|list] [name]"
+            return 1
+        fi
+        ;;
+esac
