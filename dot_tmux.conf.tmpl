@@ -48,6 +48,33 @@ bind C-b send-prefix
 # --- Snippets (Ctrl-b S: fzf pick → paste into pane) ---------
 bind S display-popup -E -w 80% -h 60% "file=$(ls -1 ~/.tmux/snippets 2>/dev/null | fzf --preview 'cat ~/.tmux/snippets/{}' --preview-window=right:60%:wrap --prompt='snippet> ') && tmux load-buffer ~/.tmux/snippets/$file && tmux paste-buffer"
 
+# --- Help (Ctrl-b ?: quick reference in popup) ---------------
+bind ? display-popup -E -w 80% -h 80% "echo '\
+ SESSIONS                         WINDOWS (TABS)              \n\
+ ta        attach recent          Ctrl-b c    new window      \n\
+ tns NAME  new session            Ctrl-b n/p  next/prev       \n\
+ tls       list sessions          Ctrl-b 1-9  jump to window  \n\
+ tks NAME  kill session           Ctrl-b ,    rename window   \n\
+ Ctrl-b d  detach                 Ctrl-b w    picker          \n\
+ tw PATH   repo workspace         Ctrl-b &    close window    \n\
+                                                              \n\
+ PANES (SPLITS)                   SNIPPETS                    \n\
+ Ctrl-b |  split horizontal       Ctrl-b S    paste snippet   \n\
+ Ctrl-b -  split vertical         snip new    create snippet  \n\
+ Ctrl-b hjkl  navigate            snip edit   edit snippet    \n\
+ Alt-hjkl  resize                 snip rm     delete snippet  \n\
+ Ctrl-b z  zoom/fullscreen                                    \n\
+ Ctrl-b x  close pane             COPY MODE                   \n\
+ Ctrl-b {  swap up                Ctrl-b [    enter copy mode \n\
+ Ctrl-b }  swap down              v           start selection \n\
+ Ctrl-b Space cycle layouts       y           yank to clipboard\n\
+                                  q           exit copy mode  \n\
+ PERSISTENCE                                                  \n\
+ Ctrl-b Ctrl-s  save session      OTHER                       \n\
+ Ctrl-b Ctrl-r  restore session   Ctrl-b Ctrl-b  nested tmux  \n\
+ auto-save every 10 min           Ctrl-b r       reload config\n\
+' | less -R"
+
 # --- Reload config ------------------------------------------
 bind r source-file ~/.tmux.conf \; display-message "tmux.conf reloaded"
 
