@@ -70,77 +70,45 @@ if [[ -d "$HOME/.bun" ]]; then
 fi
 
 # ------------------------------------------------------------
-# NVM (Node Version Manager) — lazy loaded for fast startup
+# NVM (Node Version Manager)
 # ------------------------------------------------------------
 
 if [[ -d "$HOME/.nvm" ]]; then
     export NVM_DIR="$HOME/.nvm"
-    # Lazy-load: nvm init runs on first call to nvm, node, npm, npx, or corepack
-    _nvm_lazy_load() {
-        unfunction nvm node npm npx corepack 2>/dev/null
-        [[ -s "$NVM_DIR/nvm.sh" ]] && \. "$NVM_DIR/nvm.sh"
-        [[ -s "$NVM_DIR/bash_completion" ]] && \. "$NVM_DIR/bash_completion"
-    }
-    nvm()      { _nvm_lazy_load; nvm "$@"; }
-    node()     { _nvm_lazy_load; node "$@"; }
-    npm()      { _nvm_lazy_load; npm "$@"; }
-    npx()      { _nvm_lazy_load; npx "$@"; }
-    corepack() { _nvm_lazy_load; corepack "$@"; }
-    # Add default node to PATH immediately (no nvm overhead)
-    # Resolves alias chains like: default → lts/* → lts/jod → v22.21.0
-    [[ -d "$NVM_DIR/versions/node" ]] && {
-        local _ver="" _alias_file="$NVM_DIR/alias/default"
-        while [[ -f "$_alias_file" ]]; do
-            _ver=$(cat "$_alias_file")
-            if [[ "$_ver" == v* ]]; then
-                break
-            elif [[ -f "$NVM_DIR/alias/$_ver" ]]; then
-                _alias_file="$NVM_DIR/alias/$_ver"
-            else
-                _ver=""
-                break
-            fi
-        done
-        if [[ -n "$_ver" ]]; then
-            local _node_path="$NVM_DIR/versions/node/${_ver}/bin"
-            [[ -d "$_node_path" ]] && add_to_path "$_node_path"
-        fi
-    }
+    [[ -s "$NVM_DIR/nvm.sh" ]] && \. "$NVM_DIR/nvm.sh"
+    [[ -s "$NVM_DIR/bash_completion" ]] && \. "$NVM_DIR/bash_completion"
 fi
 
 # ------------------------------------------------------------
-# Conda — lazy loaded for fast startup
+# Conda (official setup from `conda init zsh`)
 # ------------------------------------------------------------
 
 # Detect conda installation (miniforge preferred for Apple Silicon)
-_conda_root=""
 if [[ -d "$HOME/miniforge3" ]]; then
-    _conda_root="$HOME/miniforge3"
+    __conda_setup="$("$HOME/miniforge3/bin/conda" 'shell.zsh' 'hook' 2> /dev/null)"
+    if [ $? -eq 0 ]; then
+        eval "$__conda_setup"
+    else
+        [[ -f "$HOME/miniforge3/etc/profile.d/conda.sh" ]] && \. "$HOME/miniforge3/etc/profile.d/conda.sh"
+    fi
+    unset __conda_setup
 elif [[ -d "$HOME/miniconda3" ]]; then
-    _conda_root="$HOME/miniconda3"
+    __conda_setup="$("$HOME/miniconda3/bin/conda" 'shell.zsh' 'hook' 2> /dev/null)"
+    if [ $? -eq 0 ]; then
+        eval "$__conda_setup"
+    else
+        [[ -f "$HOME/miniconda3/etc/profile.d/conda.sh" ]] && \. "$HOME/miniconda3/etc/profile.d/conda.sh"
+    fi
+    unset __conda_setup
 elif [[ -d "$HOME/anaconda3" ]]; then
-    _conda_root="$HOME/anaconda3"
+    __conda_setup="$("$HOME/anaconda3/bin/conda" 'shell.zsh' 'hook' 2> /dev/null)"
+    if [ $? -eq 0 ]; then
+        eval "$__conda_setup"
+    else
+        [[ -f "$HOME/anaconda3/etc/profile.d/conda.sh" ]] && \. "$HOME/anaconda3/etc/profile.d/conda.sh"
+    fi
+    unset __conda_setup
 fi
-
-if [[ -n "$_conda_root" ]]; then
-    # Add conda to PATH immediately (no shell hook overhead)
-    add_to_path "${_conda_root}/bin"
-    # Lazy-load: full conda init runs on first call to conda or mamba
-    _conda_lazy_load() {
-        unfunction conda mamba 2>/dev/null
-        local _root="${_conda_root}"
-        __conda_setup="$("${_root}/bin/conda" 'shell.zsh' 'hook' 2> /dev/null)"
-        if [ $? -eq 0 ]; then
-            eval "$__conda_setup"
-        else
-            [[ -f "${_root}/etc/profile.d/conda.sh" ]] && \. "${_root}/etc/profile.d/conda.sh"
-        fi
-        unset __conda_setup
-    }
-    conda() { _conda_lazy_load; conda "$@"; }
-    mamba() { _conda_lazy_load; mamba "$@"; }
-fi
-unset _conda_root
 
 # ------------------------------------------------------------
 # CUDA (Linux)
