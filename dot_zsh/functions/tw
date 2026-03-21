@@ -18,6 +18,17 @@ local session="main"
 
 if ! tmux -L "$socket" has-session -t "$session" 2>/dev/null; then
     tmux -L "$socket" new-session -d -s "$session" -c "$repo_path"
+
+    # Per-repo custom layout (if exists), otherwise default 3-pane tiled
+    local layout_script="${HOME}/.config/tmux/layouts/${repo_name}.sh"
+    if [[ -x "$layout_script" ]]; then
+        "$layout_script" "$socket" "$session" "$repo_path"
+    else
+        tmux -L "$socket" split-window -h -t "$session" -c "$repo_path"
+        tmux -L "$socket" split-window -v -t "$session:0.1" -c "$repo_path"
+        tmux -L "$socket" select-layout -t "$session" tiled
+        tmux -L "$socket" select-pane -t "$session:0.0"
+    fi
 fi
 
 exec tmux -L "$socket" attach -t "$session"
