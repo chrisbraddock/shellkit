@@ -87,11 +87,22 @@ if [[ -d "$HOME/.nvm" ]]; then
     npx()      { _nvm_lazy_load; npx "$@"; }
     corepack() { _nvm_lazy_load; corepack "$@"; }
     # Add default node to PATH immediately (no nvm overhead)
+    # Resolves alias chains like: default → lts/* → lts/jod → v22.21.0
     [[ -d "$NVM_DIR/versions/node" ]] && {
-        local _default_node="$NVM_DIR/alias/default"
-        if [[ -f "$_default_node" ]]; then
-            local _ver=$(cat "$_default_node")
-            local _node_path="$NVM_DIR/versions/node/v${_ver}/bin"
+        local _ver="" _alias_file="$NVM_DIR/alias/default"
+        while [[ -f "$_alias_file" ]]; do
+            _ver=$(cat "$_alias_file")
+            if [[ "$_ver" == v* ]]; then
+                break
+            elif [[ -f "$NVM_DIR/alias/$_ver" ]]; then
+                _alias_file="$NVM_DIR/alias/$_ver"
+            else
+                _ver=""
+                break
+            fi
+        done
+        if [[ -n "$_ver" ]]; then
+            local _node_path="$NVM_DIR/versions/node/${_ver}/bin"
             [[ -d "$_node_path" ]] && add_to_path "$_node_path"
         fi
     }
