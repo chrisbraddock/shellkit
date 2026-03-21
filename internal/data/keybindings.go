@@ -109,7 +109,7 @@ tmux is hierarchical — think of it like a workspace manager:
 |-----|-------------|
 | ` + "`Ctrl-b Ctrl-s`" + ` | Save session |
 | ` + "`Ctrl-b Ctrl-r`" + ` | Restore session |
-| Auto-save | Every 10 minutes (continuum) |
+| Auto-save | Every 5 minutes (continuum) |
 
 ## Nested tmux (SSH)
 | Key | Description |

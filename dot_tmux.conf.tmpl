@@ -72,7 +72,7 @@ bind ? display-popup -E -w 80% -h 80% "echo '\
  PERSISTENCE                                                  \n\
  Ctrl-b Ctrl-s  save session      OTHER                       \n\
  Ctrl-b Ctrl-r  restore session   Ctrl-b Ctrl-b  nested tmux  \n\
- auto-save every 10 min           Ctrl-b r       reload config\n\
+ auto-save every 5 min            Ctrl-b r       reload config\n\
 ' | less -R"
 
 # --- Reload config ------------------------------------------
@@ -97,7 +97,9 @@ set -g @plugin 'tmux-plugins/tmux-resurrect'
 set -g @plugin 'tmux-plugins/tmux-continuum'
 
 set -g @continuum-restore 'on'
-set -g @continuum-save-interval '10'
+set -g @continuum-save-interval '5'
+set -g @resurrect-capture-pane-contents 'on'
+set -g @resurrect-strategy-nvim 'session'
 
 # --- Local overrides ----------------------------------------
 if-shell "[ -f ~/.tmux.conf.local ]" "source-file ~/.tmux.conf.local"
