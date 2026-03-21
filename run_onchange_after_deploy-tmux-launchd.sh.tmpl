@@ -1,0 +1,40 @@
+{{ if and (eq .chezmoi.os "darwin") (eq .profile "full") -}}
+#!/usr/bin/env bash
+# Deploy macOS LaunchAgent to start tmux server at login
+# This ensures continuum can restore sessions after reboot
+# hash: {{ include "dot_tmux.conf.tmpl" | sha256sum }}
+set -euo pipefail
+
+PLIST_DIR="${HOME}/Library/LaunchAgents"
+PLIST_FILE="${PLIST_DIR}/com.shellkit.tmux-server.plist"
+mkdir -p "${PLIST_DIR}"
+
+TMUX_BIN="$(command -v tmux 2>/dev/null || echo "/opt/homebrew/bin/tmux")"
+
+cat > "${PLIST_FILE}" << EOF
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+    <key>Label</key>
+    <string>com.shellkit.tmux-server</string>
+    <key>ProgramArguments</key>
+    <array>
+        <string>${TMUX_BIN}</string>
+        <string>start-server</string>
+    </array>
+    <key>RunAtLoad</key>
+    <true/>
+    <key>KeepAlive</key>
+    <false/>
+</dict>
+</plist>
+EOF
+
+# Load the agent (unload first if already loaded)
+launchctl bootout "gui/$(id -u)" "${PLIST_FILE}" 2>/dev/null || true
+launchctl bootstrap "gui/$(id -u)" "${PLIST_FILE}"
+
+echo "==> tmux LaunchAgent deployed and loaded"
+echo "    tmux server will start automatically at login"
+{{ end -}}
