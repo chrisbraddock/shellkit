@@ -98,6 +98,10 @@ Packages are defined in `.chezmoidata/packages.yaml`:
 3. **Package**: Add to `.chezmoidata/packages.yaml`
 4. **Documentation**: Update README.md and this file
 
+## Known Pitfalls
+
+- **Do NOT lazy-load nvm or conda.** Wrapping them in shell functions breaks global npm binaries (e.g. `codex`), nvm alias resolution (`lts/*` chains), and conda shell hooks. Attempted twice, reverted twice. P10k instant prompt already masks the ~850ms startup cost — accept it.
+
 ## Profiles
 
 - **full**: All packages, plugins, biometric sudo (workstations)
