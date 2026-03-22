@@ -1,6 +1,6 @@
 #!/usr/bin/env zsh
-# ai - AI coding workspace: claude + codex + shell
-# Usage: ai [path]   (defaults to current directory)
+# tdev - AI dev workspace: claude + codex + shell
+# Usage: tdev [path]   (defaults to current directory)
 
 local repo_path="${1:-.}"
 repo_path="${repo_path:A}"
