@@ -13,17 +13,19 @@ if tmux has-session -t "$session" 2>/dev/null; then
     exec tmux attach -t "$session"
 fi
 
-# Create session with claude on the left
+# Create session — pane 0 (left: claude)
 tmux new-session -d -s "$session" -c "$repo_path"
-tmux send-keys -t "$session" 'claude --continue' C-m
 
-# Split right: codex on top
-tmux split-window -h -t "$session" -c "$repo_path"
-tmux send-keys -t "$session" 'codex continue' C-m
+# Split right — pane 1 (right: codex)
+tmux split-window -h -t "${session}:0.0" -c "$repo_path"
 
-# Split bottom-right: clean shell
+# Split pane 1 vertically — pane 2 (bottom-right: shell)
 tmux split-window -v -t "${session}:0.1" -c "$repo_path"
-tmux send-keys -t "$session" 'clear' C-m
+
+# Send commands to each pane
+tmux send-keys -t "${session}:0.0" 'claude --continue' C-m
+tmux send-keys -t "${session}:0.1" 'codex continue' C-m
+tmux send-keys -t "${session}:0.2" 'clear' C-m
 
 # Focus left pane (claude)
 tmux select-pane -t "${session}:0.0"
