@@ -1,0 +1,31 @@
+#!/usr/bin/env zsh
+# ai - AI coding workspace: claude + codex + shell
+# Usage: ai [path]   (defaults to current directory)
+
+local repo_path="${1:-.}"
+repo_path="${repo_path:A}"
+
+local repo_name="${repo_path:t}"
+repo_name="${repo_name//[^[:alnum:]]/_}"
+local session="ai_${repo_name}"
+
+if tmux has-session -t "$session" 2>/dev/null; then
+    exec tmux attach -t "$session"
+fi
+
+# Create session with claude on the left
+tmux new-session -d -s "$session" -c "$repo_path"
+tmux send-keys -t "$session" 'claude --continue' C-m
+
+# Split right: codex on top
+tmux split-window -h -t "$session" -c "$repo_path"
+tmux send-keys -t "$session" 'codex continue' C-m
+
+# Split bottom-right: clean shell
+tmux split-window -v -t "${session}:0.1" -c "$repo_path"
+tmux send-keys -t "$session" 'clear' C-m
+
+# Focus left pane (claude)
+tmux select-pane -t "${session}:0.0"
+
+exec tmux attach -t "$session"
