@@ -14,21 +14,21 @@ if tmux has-session -t "$session" 2>/dev/null; then
 fi
 
 # Create session — left pane (claude)
-tmux new-session -d -s "$session" -c "$repo_path"
+tmux new-session -d -s "$session" -c "$repo_path" -PF '#{pane_id}'
+local left_pane=$(tmux display-message -t "$session" -p '#{pane_id}')
 
-# Split right (codex) — -h splits the current pane left|right
-tmux split-window -h -t "$session" -c "$repo_path"
+# Split right (codex)
+local right_pane=$(tmux split-window -h -t "$left_pane" -c "$repo_path" -PF '#{pane_id}')
 
-# Split the right pane top/bottom (shell) — -v splits current pane top|bottom
-# After split-window, the new pane is active, so we target $session directly
-tmux split-window -v -t "$session" -c "$repo_path"
+# Split the right pane top/bottom (shell)
+local bottom_pane=$(tmux split-window -v -t "$right_pane" -c "$repo_path" -PF '#{pane_id}')
 
-# Send commands — use absolute pane indices via list-panes
-tmux send-keys -t "${session}.0" 'claude --continue' C-m
-tmux send-keys -t "${session}.1" 'codex resume' C-m
-tmux send-keys -t "${session}.2" 'clear' C-m
+# Send commands to each pane by ID
+tmux send-keys -t "$left_pane" 'claude --continue' C-m
+tmux send-keys -t "$right_pane" 'codex resume' C-m
+tmux send-keys -t "$bottom_pane" 'clear' C-m
 
 # Focus left pane (claude)
-tmux select-pane -t "${session}.0"
+tmux select-pane -t "$left_pane"
 
 exec tmux attach -t "$session"
