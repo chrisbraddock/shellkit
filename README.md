@@ -4,7 +4,7 @@
 
 **A fast, modern shell configuration managed with [chezmoi](https://www.chezmoi.io/)**
 
-[![Version](https://img.shields.io/badge/version-1.17.0-blue.svg)](https://github.com/chrisbraddock/shellkit/releases)
+[![Version](https://img.shields.io/badge/version-1.22.0-blue.svg)](https://github.com/chrisbraddock/shellkit/releases)
 [![License](https://img.shields.io/badge/license-MIT-green.svg)](LICENSE)
 [![Platform](https://img.shields.io/badge/platform-macOS%20%7C%20Linux%20%7C%20WSL-lightgrey.svg)]()
 
@@ -47,9 +47,12 @@ flowchart LR
 | 👆 **Touch ID for sudo** | Biometric sudo on macOS (auto-enabled) |
 | 👥 **Multi-identity Git** | Separate personal and work Git/SSH identities |
 | 🔐 **Secret management** | Per-directory env vars with direnv + 1Password CLI |
+| ✂️ **Snippet manager** | `snip` + `Ctrl-b S` for tmux snippets with fzf preview and paste |
+| 🤖 **AI dev workspace** | `tdev` opens Claude, Codex, and a shell in a 3-pane tmux workspace |
 | 📂 **File Explorer** | nvim-tree sidebar with auto-open, git status, and icons (neovim) |
 | 📋 **Copy Claude Plan** | iTerm2 hotkey to copy Claude Code plan blocks to clipboard (macOS, full profile) |
 | 🖥️ **tmux auto-start** | Auto-launches tmux on new shells with per-repo workspace isolation in cmux |
+| 💾 **Session restore** | tmux + Neovim sessions auto-save and restore cleanly across restarts |
 | 📝 **Markdown preview** | Live preview with Mermaid.js diagram rendering in Neovim |
 
 ## 📥 Installation
@@ -80,9 +83,9 @@ cd ~/repos/shellkit && ./init.sh
 1. Prompt for Git identity (name, email, SSH key)
 2. Prompt for optional work identity (can skip for personal-only setups)
 3. Prompt for repo directories and optional tool toggles
-3. Install Homebrew (if not present)
-4. Install all packages from `.chezmoidata/packages.yaml`
-5. Apply all dotfiles and enable biometric sudo (if selected)
+4. Install Homebrew (if not present)
+5. Install all packages from `.chezmoidata/packages.yaml`
+6. Apply all dotfiles and enable biometric sudo (if selected)
 
 Restart your terminal to load the new configuration.
 
@@ -132,7 +135,9 @@ shellkit/
 │   │   ├── shellkit            # Shellkit management (update, edit, diff)
 │   │   ├── mon                 # System monitoring launcher
 │   │   ├── reload              # Reload shell configuration
+│   │   ├── snip                # tmux snippet manager
 │   │   ├── sshx                # SSH with automatic tmux attach
+│   │   ├── tdev                # Claude + Codex + shell tmux workspace
 │   │   ├── tw                  # Per-repo tmux workspace (isolated socket)
 │   │   ├── sudo-biometrics     # Biometric sudo setup
 │   │   └── git-*               # Git helper functions
@@ -144,7 +149,7 @@ shellkit/
 │   ├── atuin/config.toml       # Local-only history config
 │   └── nvim/
 │       ├── init.vim            # Sources vimrc + loads Lua config
-│       └── lua/                # Neovim Lua config (plugins, nvim-tree)
+│       └── lua/                # Neovim Lua config (plugins, nvim-tree, sessions)
 │
 ├── private_dot_ssh/
 │   └── config.tmpl             # SSH config with host aliases
@@ -155,7 +160,7 @@ shellkit/
 ├── .chezmoidata/
 │   └── packages.yaml           # Declarative package list
 │
-└── run_*.sh.tmpl               # Bootstrap and package scripts
+└── run_*.sh.tmpl               # Bootstrap, install, and deploy scripts
 ```
 
 </details>
@@ -359,7 +364,9 @@ secrets op-login
 | `mon` | System monitoring (`mon cpu`, `mon gpu`, `mon net`\*, `mon disk`\*) |
 | `sudo-biometrics` | Biometric sudo auth (`status`, `enable`, `disable`, `test`) |
 | `secrets` | Secret management (`status`, `init`, `edit`, `allow`, `op-login`) |
+| `snip` | tmux snippet manager (`snip new`, `snip paste`, `snip cp`) |
 | `sshx` | SSH with automatic tmux attach on remote |
+| `tdev` | 3-pane AI dev workspace for the current repo (`claude`, `codex`, shell) |
 | `tw` | Per-repo tmux workspace with isolated socket |
 | `wimip` | Show machine's IP address |
 
@@ -375,8 +382,13 @@ tmux auto-starts on new shells (full profile) with these key features:
 | **cmux isolation** | Each cmux tab gets an isolated tmux socket — no session collisions |
 | **SSH auto-attach** | SSH to `.home.lan` hosts auto-attaches tmux |
 | **Per-repo workspaces** | `tw <path>` creates an isolated tmux workspace per repository |
+| **AI workspace** | `tdev <path>` opens Claude, Codex, and a shell in a ready-to-code 3-pane layout |
 | **Nested tmux** | `Ctrl-b Ctrl-b` sends prefix to inner tmux (SSH sessions) |
-| **Session persistence** | tmux-resurrect + tmux-continuum auto-saves every 10 minutes |
+| **Snippets & help** | `Ctrl-b S` opens snippet paste, `Ctrl-b ?` shows the quick reference popup |
+| **Session persistence** | tmux-resurrect + tmux-continuum auto-save every 5 minutes with pane capture |
+| **Neovim restore** | Per-project Neovim sessions auto-save on exit and restore through tmux-resurrect |
+| **macOS boot restore** | A LaunchAgent starts the tmux server at login so restore works after reboot |
+| **Terminal passthrough** | tmux passthrough is enabled for terminal notifications and OSC-aware tools |
 | **Mouse support** | Click panes, drag borders to resize, scroll with mouse wheel |
 
 <details>

@@ -12,17 +12,17 @@ shellkit/
 ├── internal/             # Go TUI internals (app, data, ui, config)
 ├── dot_zsh/              # Zsh configuration
 │   ├── aliases/          # Git, system, and tool aliases
-│   ├── functions/        # Shell utilities (shellkit, mon, secrets, etc.)
+│   ├── functions/        # Shell utilities (shellkit, mon, secrets, snip, tw, tdev, etc.)
 │   ├── os-detect.zsh     # Sets $OS_TYPE variable
 │   └── paths.zsh         # PATH setup
 ├── dot_config/           # Tool configs (atuin, nvim)
-│   └── nvim/lua/         # Neovim Lua config (lazy.nvim, nvim-tree)
+│   └── nvim/lua/         # Neovim Lua config (lazy.nvim, nvim-tree, session auto-save)
 ├── private_dot_ssh/      # SSH configuration templates
 ├── iterm2/               # iTerm2 Python API scripts (deployed via run script)
 ├── .chezmoidata/         # Package definitions (packages.yaml)
 ├── .github/workflows/    # CI/CD (GoReleaser on tag push)
 ├── .goreleaser.yml       # Multi-platform binary build config
-└── run_*.sh.tmpl         # Bootstrap and install scripts
+└── run_*.sh.tmpl         # Bootstrap, install, and deploy scripts
 ```
 
 ## Conventions
@@ -47,8 +47,12 @@ tmux auto-starts on new shells (full profile). Key behaviors:
 - **SSH (`.home.lan`)**: Auto-attaches via `RemoteCommand` in SSH config
 - **Skipped in**: VS Code terminals, Emacs, Zellij
 - **Nested tmux**: `Ctrl-b Ctrl-b` sends prefix to inner tmux (SSH sessions)
+- **Snippets**: `snip` manages reusable tmux snippets; `Ctrl-b S` opens the paste picker
 - **`tw <path>`**: Manually open a per-repo tmux workspace with isolated socket
+- **`tdev <path>`**: Open a 3-pane AI workspace (Claude, Codex, shell) for a repo
 - **`sshx <host>`**: SSH with automatic tmux attach on remote
+- **Persistence**: tmux-continuum saves every 5 minutes with pane capture and Neovim session restore
+- **macOS restore**: `run_onchange_after_deploy-tmux-launchd.sh.tmpl` deploys a LaunchAgent to start tmux at login
 
 ## Development Commands
 

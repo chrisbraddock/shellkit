@@ -14,7 +14,7 @@ func LoadKeybindings() []Keybinding {
 		{Key: "Ctrl-b |", Description: "Split pane horizontally", Category: "tmux"},
 		{Key: "Ctrl-b -", Description: "Split pane vertically", Category: "tmux"},
 		{Key: "Ctrl-b h/j/k/l", Description: "Navigate panes (vim-style)", Category: "tmux"},
-		{Key: "Ctrl-b H/J/K/L", Description: "Resize panes", Category: "tmux"},
+		{Key: "Alt-h/j/k/l", Description: "Resize panes", Category: "tmux"},
 		{Key: "Ctrl-b c", Description: "New window", Category: "tmux"},
 		{Key: "Ctrl-b n/p", Description: "Next/previous window", Category: "tmux"},
 		{Key: "Ctrl-b 1-9", Description: "Jump to window by number", Category: "tmux"},
@@ -22,9 +22,13 @@ func LoadKeybindings() []Keybinding {
 		{Key: "Ctrl-b w", Description: "Window/session picker", Category: "tmux"},
 		{Key: "Ctrl-b d", Description: "Detach from session", Category: "tmux"},
 		{Key: "Ctrl-b [", Description: "Enter copy mode (vi keys)", Category: "tmux"},
+		{Key: "Ctrl-b S", Description: "Paste a tmux snippet with fzf preview", Category: "tmux"},
+		{Key: "Ctrl-b ?", Description: "Open the tmux quick reference popup", Category: "tmux"},
 		{Key: "Ctrl-b I", Description: "Install TPM plugins", Category: "tmux"},
 		{Key: "Ctrl-b Ctrl-s", Description: "Save session (resurrect)", Category: "tmux"},
 		{Key: "Ctrl-b Ctrl-r", Description: "Restore session (resurrect)", Category: "tmux"},
+		{Key: "Ctrl-b Ctrl-b", Description: "Send prefix to nested tmux", Category: "tmux"},
+		{Key: "Ctrl-b r", Description: "Reload tmux config", Category: "tmux"},
 
 		// Shell keybindings
 		{Key: "Alt-A", Description: "AI command prompt (claude CLI)", Category: "shell"},
@@ -59,6 +63,7 @@ tmux is hierarchical — think of it like a workspace manager:
 | ` + "`tkill`" + ` | Kill entire tmux server |
 | ` + "`sshx <host>`" + ` | SSH + auto-attach tmux |
 | ` + "`tw <path>`" + ` | Open repo workspace (isolated socket) |
+| ` + "`tdev <path>`" + ` | Open Claude, Codex, and a shell in one workspace |
 | ` + "`Ctrl-b d`" + ` | Detach from current session |
 
 ## Windows (Tabs)
@@ -89,10 +94,12 @@ tmux is hierarchical — think of it like a workspace manager:
 | Key / Command | Description |
 |---------------|-------------|
 | ` + "`Ctrl-b S`" + ` | fzf pick snippet → paste into pane |
+| ` + "`Ctrl-b ?`" + ` | Open the tmux quick reference popup |
 | ` + "`snip new <name>`" + ` | Create a new snippet |
 | ` + "`snip edit <name>`" + ` | Edit an existing snippet |
 | ` + "`snip rm <name>`" + ` | Delete a snippet |
 | ` + "`snip cp <name>`" + ` | Copy snippet to clipboard |
+| ` + "`snip paste`" + ` | Pick a snippet and paste it into the pane |
 | ` + "`snip`" + ` | Browse all snippets (fzf) |
 
 ## Copy Mode (vi)
@@ -110,6 +117,9 @@ tmux is hierarchical — think of it like a workspace manager:
 | ` + "`Ctrl-b Ctrl-s`" + ` | Save session |
 | ` + "`Ctrl-b Ctrl-r`" + ` | Restore session |
 | Auto-save | Every 5 minutes (continuum) |
+| Pane capture | Saved and restored with resurrect |
+| Neovim restore | Sessions restored through tmux-resurrect |
+| macOS boot restore | LaunchAgent starts tmux server at login |
 
 ## Nested tmux (SSH)
 | Key | Description |
