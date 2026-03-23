@@ -1,4 +1,3 @@
-{{ if eq .profile "full" -}}
 #!/usr/bin/env bash
 # Install Oh my tmux! (gpakosz/.tmux) framework
 # hash: {{ include "dot_tmux.conf.local.tmpl" | sha256sum }}
@@ -22,4 +21,3 @@ ln -sf "$OH_MY_TMUX_DIR/.tmux.conf" "$HOME/.tmux.conf"
 echo "==> Oh my tmux! installed"
 echo "    Framework: ~/.tmux/.tmux.conf (symlinked to ~/.tmux.conf)"
 echo "    Customizations: ~/.tmux.conf.local (managed by shellkit)"
-{{ end -}}
