@@ -13,25 +13,8 @@ fi
 typeset -gF SHELLKIT_ZSH_START=$EPOCHREALTIME
 
 # ------------------------------------------------------------
-# Auto-start tmux (full profile only)
+# tmux: use tdev or tw to start a workspace manually
 # ------------------------------------------------------------
-{{ if eq .profile "full" -}}
-if [[ -z "$TMUX" ]] && [[ -z "$_SHELLKIT_RC_SOURCED" ]] \
-   && command -v tmux &>/dev/null \
-   && [[ "$TERM_PROGRAM" != "vscode" ]] \
-   && [[ -z "$INSIDE_EMACS" ]] \
-   && [[ -z "$ZELLIJ" ]]; then
-    if [[ -n "$CMUX_WORKSPACE_ID" || -n "$CMUX_BUNDLE_ID" ]]; then
-        # cmux: isolated tmux socket per workspace (prevents session collisions)
-        local _repo_name="${PWD:t}"
-        _repo_name="${_repo_name//[^[:alnum:]]/_}"
-        exec tmux -L "ws_${_repo_name}" new-session -A -s main
-    else
-        exec tmux new-session -A -s main
-    fi
-fi
-{{- end }}
-typeset -g _SHELLKIT_RC_SOURCED=1
 
 # ------------------------------------------------------------
 # Powerlevel10k Instant Prompt (must be at top)
