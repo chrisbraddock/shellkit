@@ -10,6 +10,7 @@ if ! infocmp "$TERM" &>/dev/null 2>&1; then
 fi
 
 # Startup timing (for shellkit metrics)
+zmodload zsh/datetime
 typeset -gF SHELLKIT_ZSH_START=$EPOCHREALTIME
 
 # ------------------------------------------------------------

@@ -2,7 +2,7 @@
 #!/usr/bin/env bash
 # Deploy macOS LaunchAgent to start tmux server at login
 # This ensures continuum can restore sessions after reboot
-# hash: {{ include "dot_tmux.conf.tmpl" | sha256sum }}
+# hash: {{ include "dot_tmux.conf.local.tmpl" | sha256sum }}
 set -euo pipefail
 
 PLIST_DIR="${HOME}/Library/LaunchAgents"
