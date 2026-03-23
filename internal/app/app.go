@@ -213,7 +213,7 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 		// Global keys always work
 		switch key {
-		case "ctrl+c":
+		case "ctrl+c", "escape":
 			return m, tea.Quit
 		case "shift+up":
 			m.headerState.Collapse()
