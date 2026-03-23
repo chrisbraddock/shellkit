@@ -13,6 +13,9 @@ cliff.toml
 VERSION
 CHANGELOG.md
 
+# tmux framework (symlink managed by Oh my tmux, not chezmoi)
+.tmux.conf
+
 # Editor/IDE files
 .vscode/
 .idea/

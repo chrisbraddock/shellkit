@@ -1,0 +1,25 @@
+{{ if eq .profile "full" -}}
+#!/usr/bin/env bash
+# Install Oh my tmux! (gpakosz/.tmux) framework
+# hash: {{ include "dot_tmux.conf.local.tmpl" | sha256sum }}
+set -euo pipefail
+
+OH_MY_TMUX_DIR="$HOME/.tmux"
+OH_MY_TMUX_REPO="https://github.com/gpakosz/.tmux.git"
+
+if [[ ! -d "$OH_MY_TMUX_DIR/.git" ]] || [[ ! -f "$OH_MY_TMUX_DIR/.tmux.conf" ]]; then
+    echo "==> Installing Oh my tmux!..."
+    rm -rf "$OH_MY_TMUX_DIR"
+    git clone --single-branch "$OH_MY_TMUX_REPO" "$OH_MY_TMUX_DIR"
+else
+    echo "==> Updating Oh my tmux!..."
+    git -C "$OH_MY_TMUX_DIR" pull --ff-only 2>/dev/null || true
+fi
+
+# Symlink the framework as ~/.tmux.conf
+ln -sf "$OH_MY_TMUX_DIR/.tmux.conf" "$HOME/.tmux.conf"
+
+echo "==> Oh my tmux! installed"
+echo "    Framework: ~/.tmux/.tmux.conf (symlinked to ~/.tmux.conf)"
+echo "    Customizations: ~/.tmux.conf.local (managed by shellkit)"
+{{ end -}}
